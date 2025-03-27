@@ -5,7 +5,7 @@
 
 // Configuration de l'API Mistral
 const MISTRAL_API_CONFIG = {
-    apiKey: 'm4aNE1jpun7jTCNOzx03uKsvIX504ii0', // À remplir avec votre clé API Mistral
+    apiKey: '', // À remplir avec votre clé API Mistral
     endpoint: 'https://api.mistral.ai/v1/ocr', // Endpoint de l'API OCR de Mistral
     model: 'mistral-ocr-medium' // Modèle OCR à utiliser
 };
