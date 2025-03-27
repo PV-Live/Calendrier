@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4285f4">
+    <title>Paramètres - Calendrier Leo</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="images/icons/icon-72x72.png">
+    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+    <!-- Polices -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>Calendrier Leo</h1>
+        <p>Paramètres et configuration</p>
+    </header>
+
+    <main>
+        <div class="container settings-container">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Gestion des codes</h2>
+                    <p>Configurez les codes utilisés dans les plannings et leurs paramètres</p>
+                </div>
+
+                <div class="code-manager">
+                    <div class="code-list-container">
+                        <div class="search-bar">
+                            <input type="text" id="codeSearch" placeholder="Rechercher un code...">
+                            <button id="addCodeBtn" class="button button-primary">Ajouter un code</button>
+                        </div>
+                        
+                        <div class="code-list" id="codeList">
+                            <!-- Les codes seront insérés ici dynamiquement -->
+                        </div>
+                    </div>
+
+                    <div class="code-editor" id="codeEditor">
+                        <h3 id="editorTitle">Ajouter un nouveau code</h3>
+                        
+                        <form id="codeForm">
+                            <div class="form-group">
+                                <label for="codeInput">Code</label>
+                                <input type="text" id="codeInput" placeholder="Ex: JBD" maxlength="5" required>
+                                <small>Maximum 5 caractères, lettres et chiffres uniquement</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="descriptionInput">Description</label>
+                                <input type="text" id="descriptionInput" placeholder="Ex: Jour de bureau - Domicile" required>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="startTimeInput">Heure de début</label>
+                                    <input type="time" id="startTimeInput" value="09:00" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="endTimeInput">Heure de fin</label>
+                                    <input type="time" id="endTimeInput" value="17:00" required>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="colorInput">Couleur</label>
+                                <input type="color" id="colorInput" value="#4285f4">
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="button button-primary" id="saveCodeBtn">Enregistrer</button>
+                                <button type="button" class="button button-secondary" id="cancelEditBtn">Annuler</button>
+                                <button type="button" class="button button-danger" id="deleteCodeBtn">Supprimer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>Configuration de l'API</h2>
+                    <p>Paramètres de l'API Mistral OCR</p>
+                </div>
+                
+                <form id="apiForm">
+                    <div class="form-group">
+                        <label for="apiKeyInput">Clé API Mistral</label>
+                        <input type="password" id="apiKeyInput" placeholder="Entrez votre clé API Mistral">
+                        <small>Laissez vide pour utiliser le mode démo</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="modelSelect">Modèle OCR</label>
+                        <select id="modelSelect">
+                            <option value="mistral-ocr-medium">mistral-ocr-medium (Recommandé)</option>
+                            <option value="mistral-ocr-small">mistral-ocr-small (Plus rapide)</option>
+                            <option value="mistral-ocr-large">mistral-ocr-large (Plus précis)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="button button-primary">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>Importation / Exportation</h2>
+                    <p>Sauvegardez ou restaurez vos paramètres</p>
+                </div>
+                
+                <div class="import-export">
+                    <div class="form-group">
+                        <button id="exportSettingsBtn" class="button">Exporter les paramètres</button>
+                        <small>Télécharge un fichier JSON avec tous vos paramètres</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="importFileInput" class="button">Importer des paramètres</label>
+                        <input type="file" id="importFileInput" accept=".json" hidden>
+                        <small>Restaure les paramètres à partir d'un fichier JSON</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-nav">
+            <a href="index.html" class="nav-link">Accueil</a>
+            <a href="settings.html" class="nav-link active">Paramètres</a>
+        </div>
+        <p>&copy; 2025 Calendrier Leo - Tous droits réservés</p>
+    </footer>
+
+    <div class="toast" id="toast" hidden>
+        <p id="toastMessage"></p>
+    </div>
+
+    <script src="js/settings.js"></script>
+    <script>
+        // Enregistrer le service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker enregistré avec succès:', registration);
+                    })
+                    .catch(error => {
+                        console.log('Échec de l\'enregistrement du Service Worker:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

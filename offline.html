@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4285f4">
+    <title>Hors ligne - Calendrier Leo</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="images/icons/icon-72x72.png">
+    <style>
+        .offline-container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .offline-icon {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+        
+        p {
+            margin-bottom: 1.5rem;
+            color: var(--dark-gray);
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background-color: var(--primary-color);
+            color: var(--white);
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+        
+        .button:hover {
+            background-color: var(--primary-dark);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Calendrier Leo</h1>
+        <p>Analyseur de Planning avec Mistral OCR</p>
+    </header>
+
+    <main>
+        <div class="offline-container">
+            <div class="offline-icon">📶</div>
+            <h1>Vous êtes hors ligne</h1>
+            <p>Impossible de se connecter à Internet. Veuillez vérifier votre connexion et réessayer.</p>
+            <p>Certaines fonctionnalités de l'application peuvent ne pas être disponibles en mode hors ligne.</p>
+            <a href="/" class="button">Réessayer</a>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Calendrier Leo - Tous droits réservés</p>
+    </footer>
+</body>
+</html>
