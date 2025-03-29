@@ -131,6 +131,35 @@ main {
     border-radius: var(--border-radius);
 }
 
+/* Styles pour toutes les images dans le contenu principal */
+main img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+/* Conteneur pour les images importées */
+.imported-image-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+}
+
+.imported-image-container img {
+    max-width: 100%;
+    object-fit: contain;
+}
+
+/* Pour les tableaux contenant des images */
+table img {
+    max-width: none; /* Permet aux images dans les tableaux de conserver leur taille d'origine */
+    border-radius: 0;
+    box-shadow: none;
+}
+
 /* Bouton de suppression d'image */
 #removeImage {
     position: absolute;
@@ -652,6 +681,7 @@ select {
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
     background-size: 1rem;
+    padding-right: 2rem;
 }
 
 select:focus {
