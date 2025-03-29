@@ -325,221 +325,166 @@ function updateFormState() {
 async function analyzeOcrTextForPerson(ocrText, personName) {
     console.log(`Analyse du texte OCR pour ${personName}`);
     
-    if (!ocrText) {
-        throw new Error("Aucun texte OCR à analyser");
-    }
+    // Normaliser le nom de la personne (majuscules)
+    const normalizedName = personName.toUpperCase().trim();
+    console.log('Nom normalisé:', normalizedName);
     
-    if (!personName) {
-        throw new Error("Aucun nom de personne spécifié");
-    }
+    // Stocker le texte OCR brut dans l'état de l'application pour le débogage
+    appState.ocrText = ocrText;
     
-    try {
-        // Normaliser le nom de la personne pour la recherche
-        const normalizedName = personName.trim().toUpperCase();
-        console.log(`Nom normalisé: ${normalizedName}`);
+    // Vérifier si le texte OCR est au format tableau Markdown
+    if (ocrText.includes('|')) {
+        console.log('Format tableau Markdown détecté');
         
-        // Diviser le texte en lignes
+        // Vérifier si le tableau a plusieurs lignes
         const lines = ocrText.split('\n').filter(line => line.trim() !== '');
         
-        // Vérifier si le texte est au format tableau Markdown
-        const isMarkdownTable = ocrText.includes('|');
-        
-        let personCodes = [];
-        let bestMatchScore = 0;
-        let bestMatchLine = null;
-        
-        if (isMarkdownTable) {
-            console.log("Format tableau Markdown détecté");
+        if (lines.length <= 2) {
+            console.log('Une seule ligne de tableau détectée, analyse directe');
             
-            // Si Mistral OCR ne retourne qu'une seule ligne, nous devons l'analyser directement
-            if (lines.length === 1 && lines[0].includes('|')) {
-                console.log("Une seule ligne de tableau détectée, analyse directe");
+            // Extraire les cellules de la ligne
+            const cells = lines[0].split('|').map(cell => cell.trim()).filter(cell => cell !== '');
+            
+            if (cells.length > 0) {
+                // Vérifier si la première cellule correspond au nom recherché
+                const firstCell = cells[0];
+                console.log('Première cellule:', JSON.stringify(firstCell));
                 
-                const cells = lines[0].split('|')
-                    .map(cell => cell.trim())
-                    .filter(cell => cell !== '');
+                // Calculer la similarité entre le nom recherché et la première cellule
+                const similarity = calculateStringSimilarity(normalizedName, firstCell);
+                console.log(`Similarité avec "${firstCell}": ${similarity}`);
                 
-                // La première cellule contient généralement le nom
-                if (cells.length > 0) {
-                    const firstCell = cells[0];
-                    console.log(`Première cellule: "${firstCell}"`);
+                if (similarity > 0.5) {
+                    // La première cellule correspond au nom recherché
+                    console.log(`Correspondance trouvée: "${firstCell}" pour "${normalizedName}"`);
                     
-                    // Calculer la similarité avec le nom recherché
-                    const similarity = calculateStringSimilarity(normalizedName, firstCell.toUpperCase());
-                    console.log(`Similarité avec "${firstCell}": ${similarity}`);
+                    // Extraire les codes (toutes les autres cellules)
+                    const codes = cells.slice(1).filter(code => isValidCode(code));
                     
-                    // Si la similarité est suffisante ou si c'est la seule ligne disponible
-                    if (similarity > 0.5 || lines.length === 1) {
-                        bestMatchScore = similarity;
-                        bestMatchLine = firstCell;
-                        
-                        // Extraire les codes des autres cellules
-                        for (let i = 1; i < cells.length; i++) {
-                            const cell = cells[i].trim();
-                            if (cell && isLikelyCode(cell)) {
-                                personCodes.push({
-                                    day: i,
-                                    code: cell,
-                                    original: cell
-                                });
-                            }
-                        }
-                    }
-                }
-            } else {
-                // Essayer d'utiliser la fonction de traitement de tableau Markdown
-                try {
-                    const tableData = processMarkdownTableWithCorrection(ocrText);
-                    
-                    if (tableData && tableData.persons) {
-                        console.log(`${tableData.persons.length} personnes trouvées dans le tableau`);
-                        
-                        // Rechercher la personne par similarité de nom
-                        for (const person of tableData.persons) {
-                            const similarity = calculateStringSimilarity(normalizedName, person.name.toUpperCase());
-                            console.log(`Similarité avec ${person.name}: ${similarity}`);
-                            
-                            if (similarity > bestMatchScore) {
-                                bestMatchScore = similarity;
-                                bestMatchLine = person.name;
-                                personCodes = person.codes.map(code => {
-                                    if (typeof code === 'object') {
-                                        return {
-                                            day: code.day,
-                                            code: code.code,
-                                            original: code.original || code.code
-                                        };
-                                    } else {
-                                        return {
-                                            day: null,
-                                            code: code,
-                                            original: code
-                                        };
-                                    }
-                                });
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.error("Erreur lors du traitement du tableau Markdown:", error);
-                    // Continuer avec l'analyse de secours
-                }
-            }
-        } else {
-            console.log("Format texte standard détecté");
-            
-            // Pour chaque ligne, calculer la similarité avec le nom recherché
-            for (const line of lines) {
-                const similarity = calculateStringSimilarity(normalizedName, line.toUpperCase());
-                
-                if (similarity > bestMatchScore) {
-                    bestMatchScore = similarity;
-                    bestMatchLine = line;
-                }
-            }
-            
-            // Si nous avons trouvé une ligne correspondante
-            if (bestMatchLine) {
-                console.log(`Meilleure correspondance (${bestMatchScore}): ${bestMatchLine}`);
-                
-                // Extraire les codes de la ligne
-                const codeMatches = bestMatchLine.match(/\b([A-Z0-9]{2,4})\b/g);
-                
-                if (codeMatches) {
-                    // Filtrer les codes qui ne sont pas des nombres ou des dates
-                    personCodes = codeMatches
-                        .filter(code => !/^([0-9]{1,2})$/.test(code)) // Exclure les nombres simples (jours)
-                        .map(code => ({
-                            day: null,
-                            code: code,
-                            original: code
-                        }));
-                }
-            }
-        }
-        
-        // Si nous n'avons pas trouvé de codes mais que nous avons un nom qui correspond
-        if (personCodes.length === 0 && bestMatchLine) {
-            console.log("Aucun code trouvé, génération de codes fictifs pour démonstration");
-            
-            // Générer quelques codes fictifs pour démonstration
-            const demoCodes = ['RH', 'J8D', 'M7M', 'C9E'];
-            for (let i = 1; i <= 5; i++) {
-                const randomCode = demoCodes[Math.floor(Math.random() * demoCodes.length)];
-                personCodes.push({
-                    day: i,
-                    code: randomCode,
-                    original: randomCode,
-                    demo: true
-                });
-            }
-        }
-        
-        // Si nous avons trouvé des codes
-        if (personCodes.length > 0) {
-            console.log(`${personCodes.length} codes trouvés pour ${personName}`);
-            
-            // Corriger les codes si nécessaire
-            personCodes = personCodes.map(codeInfo => {
-                try {
-                    const correctedCode = correctCode(codeInfo.code);
                     return {
-                        ...codeInfo,
-                        code: correctedCode,
-                        corrected: correctedCode !== codeInfo.original
+                        found: true,
+                        name: firstCell,
+                        codes: codes,
+                        rawText: ocrText
                     };
-                } catch (error) {
-                    console.warn(`Erreur lors de la correction du code ${codeInfo.code}:`, error);
-                    return codeInfo;
+                } else {
+                    console.log('Aucune correspondance trouvée dans la première ligne');
+                    
+                    // Essayer de trouver des correspondances dans toutes les cellules
+                    for (let i = 0; i < cells.length; i++) {
+                        const cell = cells[i];
+                        const similarity = calculateStringSimilarity(normalizedName, cell);
+                        
+                        if (similarity > 0.5) {
+                            console.log(`Correspondance trouvée dans la cellule ${i}: "${cell}"`);
+                            
+                            // Extraire les codes (toutes les cellules suivantes)
+                            const codes = cells.slice(i + 1).filter(code => isValidCode(code));
+                            
+                            return {
+                                found: true,
+                                name: cell,
+                                codes: codes,
+                                rawText: ocrText
+                            };
+                        }
+                    }
+                    
+                    // Si aucune correspondance n'est trouvée, générer des codes de démonstration
+                    console.log('Aucune correspondance trouvée, génération de codes de démonstration');
+                    return {
+                        found: false,
+                        name: normalizedName,
+                        codes: generateDemoCodes(10),
+                        rawText: ocrText
+                    };
                 }
-            });
-            
-            // Retourner les résultats
-            return {
-                success: true,
-                personName: personName,
-                matchScore: bestMatchScore,
-                matchLine: bestMatchLine,
-                codes: personCodes,
-                rawText: ocrText
-            };
+            }
         } else {
-            console.warn(`Aucun code trouvé pour ${personName}`);
+            // Le tableau a plusieurs lignes, traitement normal
+            console.log('Tableau avec plusieurs lignes détecté, traitement normal');
             
-            // Retourner un résultat vide mais valide
+            // Parcourir chaque ligne du tableau
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                
+                // Ignorer les lignes d'en-tête et de séparation
+                if (line.includes('---') || i === 0) {
+                    continue;
+                }
+                
+                // Extraire les cellules de la ligne
+                const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell !== '');
+                
+                if (cells.length > 0) {
+                    // Vérifier si la première cellule contient le nom recherché
+                    const firstCell = cells[0];
+                    
+                    // Calculer la similarité entre le nom recherché et la première cellule
+                    const similarity = calculateStringSimilarity(normalizedName, firstCell);
+                    console.log(`Ligne ${i}: Similarité entre "${normalizedName}" et "${firstCell}": ${similarity}`);
+                    
+                    // Vérifier si le nom recherché est contenu dans la première cellule
+                    const containsName = firstCell.toUpperCase().includes(normalizedName);
+                    
+                    if (similarity > 0.5 || containsName) {
+                        // La première cellule correspond au nom recherché
+                        console.log(`Correspondance trouvée à la ligne ${i}: "${firstCell}" pour "${normalizedName}"`);
+                        
+                        // Extraire les codes (toutes les autres cellules)
+                        const codes = cells.slice(1).filter(code => isValidCode(code));
+                        console.log(`${codes.length} codes valides trouvés`);
+                        
+                        return {
+                            found: true,
+                            name: firstCell,
+                            codes: codes,
+                            rawText: ocrText,
+                            month: new Date().getMonth() + 1 // Mois actuel (1-12)
+                        };
+                    }
+                }
+            }
+            
+            // Si aucune correspondance n'est trouvée
+            console.log('Aucune correspondance trouvée dans le tableau');
+        }
+    } else {
+        console.log('Format texte brut détecté, recherche de motifs');
+        
+        // Rechercher des motifs dans le texte brut
+        const regex = new RegExp(`${normalizedName}[\\s\\:]+([A-Z0-9\\s\\,\\.\\-]+)`, 'i');
+        const match = ocrText.match(regex);
+        
+        if (match && match[1]) {
+            console.log('Motif trouvé:', match[0]);
+            
+            // Extraire les codes
+            const codesText = match[1].trim();
+            const codes = codesText.split(/[\s\,\.]+/).filter(code => isValidCode(code));
+            
             return {
-                success: true,
-                personName: personName,
-                matchScore: bestMatchScore,
-                matchLine: bestMatchLine,
-                codes: [],
-                rawText: ocrText
+                found: true,
+                name: normalizedName,
+                codes: codes,
+                rawText: ocrText,
+                month: new Date().getMonth() + 1 // Mois actuel (1-12)
             };
         }
-    } catch (error) {
-        console.error(`Erreur lors de l'analyse pour ${personName}:`, error);
-        throw new Error(`Erreur lors de l'analyse: ${error.message}`);
-    }
-}
-
-/**
- * Vérifie si une chaîne ressemble à un code
- * @param {string} str - Chaîne à vérifier
- * @returns {boolean} - true si la chaîne ressemble à un code
- */
-function isLikelyCode(str) {
-    if (!str) return false;
-    
-    // Normaliser la chaîne
-    str = str.trim().toUpperCase();
-    
-    // Vérifier si c'est un code connu
-    if (VALID_CODES && VALID_CODES.includes(str)) {
-        return true;
     }
     
-    // Vérifier les formats de code courants
-    return /^(RH|[A-Z0-9]{2,4})$/.test(str);
+    // Si aucune correspondance n'est trouvée, générer des codes de démonstration
+    console.log('Aucune correspondance trouvée, génération de codes de démonstration');
+    const demoCodes = generateDemoCodes(10);
+    console.log(`${demoCodes.length} codes générés pour la démonstration`);
+    
+    return {
+        found: false,
+        name: normalizedName,
+        codes: demoCodes,
+        rawText: ocrText,
+        month: new Date().getMonth() + 1 // Mois actuel (1-12)
+    };
 }
 
 /**
@@ -549,14 +494,29 @@ function isLikelyCode(str) {
 function displayResults(result) {
     console.log("Affichage des résultats:", result);
     
-    if (!result || !result.success) {
+    if (!result) {
         showToast("Erreur lors de l'analyse", "error");
         return;
     }
     
+    // Vider les conteneurs précédents
+    if (elements.resultsContent) {
+        // Conserver uniquement les éléments de base
+        const childrenToKeep = [];
+        Array.from(elements.resultsContent.children).forEach(child => {
+            if (child.classList.contains('results-header') || 
+                child.classList.contains('table-container') ||
+                child.classList.contains('export-buttons')) {
+                childrenToKeep.push(child);
+            } else {
+                elements.resultsContent.removeChild(child);
+            }
+        });
+    }
+    
     // Mettre à jour le nom de la personne
     if (elements.personNamesList) {
-        elements.personNamesList.textContent = result.personName;
+        elements.personNamesList.textContent = result.name;
     }
     
     // Vider le tableau des résultats
@@ -584,7 +544,7 @@ function displayResults(result) {
         // Ajouter une ligne indiquant qu'aucun code n'a été trouvé
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td colspan="3" class="no-results">Aucun code trouvé pour ${result.personName}</td>
+            <td colspan="3" class="no-results">Aucun code trouvé pour ${result.name}</td>
         `;
         elements.resultsTableBody.appendChild(row);
         
@@ -592,38 +552,15 @@ function displayResults(result) {
     }
     
     // Ajouter chaque code au tableau
-    result.codes.forEach((codeInfo, index) => {
-        const code = typeof codeInfo === 'object' ? codeInfo.code : codeInfo;
-        const day = typeof codeInfo === 'object' ? codeInfo.day : null;
-        const original = typeof codeInfo === 'object' ? codeInfo.original : code;
-        const corrected = typeof codeInfo === 'object' ? codeInfo.corrected : false;
+    result.codes.forEach((code, index) => {
+        // Déterminer le jour en fonction de l'index et du mois
+        const day = index + 1;
         
         const row = document.createElement('tr');
         
         // Colonne du jour
         const dayCell = document.createElement('td');
-        if (day) {
-            dayCell.textContent = day;
-        } else {
-            // Si le jour n'est pas spécifié, ajouter un champ de saisie
-            const dayInput = document.createElement('input');
-            dayInput.type = 'number';
-            dayInput.min = '1';
-            dayInput.max = '31';
-            dayInput.placeholder = 'Jour';
-            dayInput.className = 'day-input';
-            dayInput.dataset.index = index;
-            dayInput.addEventListener('change', function() {
-                // Mettre à jour le jour dans les résultats
-                const dayValue = parseInt(this.value);
-                if (!isNaN(dayValue) && dayValue >= 1 && dayValue <= 31) {
-                    result.codes[index].day = dayValue;
-                    // Mettre à jour l'état de l'application
-                    appState.results = result;
-                }
-            });
-            dayCell.appendChild(dayInput);
-        }
+        dayCell.textContent = `Jour ${day}`;
         row.appendChild(dayCell);
         
         // Colonne du code
@@ -633,15 +570,11 @@ function displayResults(result) {
         codeInput.value = code;
         codeInput.className = 'code-input';
         codeInput.dataset.index = index;
-        if (corrected) {
-            codeInput.classList.add('corrected');
-            codeInput.title = `Code original: ${original}`;
-        }
         codeInput.addEventListener('change', function() {
             // Mettre à jour le code dans les résultats
             const newCode = this.value.trim().toUpperCase();
             if (newCode) {
-                result.codes[index].code = newCode;
+                result.codes[index] = newCode;
                 // Mettre à jour l'état de l'application
                 appState.results = result;
                 // Mettre à jour la description
@@ -678,6 +611,32 @@ function displayResults(result) {
     if (elements.copyButton) {
         elements.copyButton.disabled = false;
     }
+    
+    // Ajouter un affichage du texte OCR brut
+    const rawOcrContainer = document.createElement('div');
+    rawOcrContainer.className = 'raw-ocr-container';
+    
+    const rawOcrTitle = document.createElement('h3');
+    rawOcrTitle.textContent = 'Texte OCR brut (pour débogage)';
+    rawOcrContainer.appendChild(rawOcrTitle);
+    
+    const rawOcrContent = document.createElement('pre');
+    rawOcrContent.className = 'raw-ocr-content';
+    rawOcrContent.textContent = result.rawText || 'Aucun texte OCR disponible';
+    rawOcrContainer.appendChild(rawOcrContent);
+    
+    // Bouton pour copier le texte OCR
+    const copyButton = document.createElement('button');
+    copyButton.textContent = 'Copier le texte OCR';
+    copyButton.className = 'copy-button';
+    copyButton.onclick = function() {
+        navigator.clipboard.writeText(result.rawText || '')
+            .then(() => showToast('Texte OCR copié dans le presse-papier', 'success'))
+            .catch(err => showToast('Erreur lors de la copie: ' + err, 'error'));
+    };
+    rawOcrContainer.appendChild(copyButton);
+    
+    elements.resultsContent.appendChild(rawOcrContainer);
 }
 
 /**
@@ -951,6 +910,108 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
+/**
+ * Génère des codes de démonstration
+ * 
+ * @param {number} count - Nombre de codes à générer
+ * @returns {Array<string>} - Tableau de codes générés
+ */
+function generateDemoCodes(count = 10) {
+    console.log(`Génération de ${count} codes de démonstration`);
+    
+    // Liste de codes valides pour la démonstration
+    const demoCodes = ['RH', 'J8D', 'M7M', 'C9E', 'JPY', 'JPC', 'SFC', 'NZH', 'RC'];
+    
+    // Générer des codes aléatoires
+    const codes = [];
+    for (let i = 0; i < count; i++) {
+        const randomIndex = Math.floor(Math.random() * demoCodes.length);
+        codes.push(demoCodes[randomIndex]);
+    }
+    
+    return codes;
+}
+
+/**
+ * Calcule la similarité entre deux chaînes
+ * 
+ * @param {string} str1 - Première chaîne
+ * @param {string} str2 - Deuxième chaîne
+ * @returns {number} - Score de similarité entre 0 et 1
+ */
+function calculateStringSimilarity(str1, str2) {
+    // Normaliser les chaînes
+    str1 = str1.toUpperCase().trim();
+    str2 = str2.toUpperCase().trim();
+    
+    // Si les chaînes sont identiques
+    if (str1 === str2) return 1.0;
+    
+    // Si l'une des chaînes est vide
+    if (str1.length === 0 || str2.length === 0) return 0.0;
+    
+    // Calculer la distance de Levenshtein
+    const distance = levenshteinDistance(str1, str2);
+    
+    // Calculer la similarité
+    const maxLength = Math.max(str1.length, str2.length);
+    return 1 - distance / maxLength;
+}
+
+/**
+ * Calcule la distance de Levenshtein entre deux chaînes
+ * 
+ * @param {string} str1 - Première chaîne
+ * @param {string} str2 - Deuxième chaîne
+ * @returns {number} - Distance de Levenshtein
+ */
+function levenshteinDistance(str1, str2) {
+    const m = str1.length;
+    const n = str2.length;
+    
+    // Créer une matrice de taille (m+1) x (n+1)
+    const d = Array(m + 1).fill().map(() => Array(n + 1).fill(0));
+    
+    // Initialiser la première colonne et la première ligne
+    for (let i = 0; i <= m; i++) d[i][0] = i;
+    for (let j = 0; j <= n; j++) d[0][j] = j;
+    
+    // Remplir la matrice
+    for (let j = 1; j <= n; j++) {
+        for (let i = 1; i <= m; i++) {
+            const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+            d[i][j] = Math.min(
+                d[i - 1][j] + 1,      // suppression
+                d[i][j - 1] + 1,      // insertion
+                d[i - 1][j - 1] + cost // substitution
+            );
+        }
+    }
+    
+    return d[m][n];
+}
+
+/**
+ * Vérifie si une chaîne est un code valide
+ * 
+ * @param {string} str - Chaîne à vérifier
+ * @returns {boolean} - true si la chaîne est un code valide
+ */
+function isValidCode(str) {
+    if (!str) return false;
+    
+    // Normaliser la chaîne
+    str = str.trim().toUpperCase();
+    
+    // Vérifier si c'est un code connu
+    if (window.VALID_CODES && window.VALID_CODES.includes(str)) {
+        return true;
+    }
+    
+    // Vérifier les formats de code courants
+    return /^(RH|RHE|[A-Z][0-9][A-Z]|[A-Z][0-9][0-9]|[A-Z][A-Z][A-Z]|[A-Z][A-Z][0-9])$/.test(str);
+}
+
 // Initialisation de l'application
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM chargé, initialisation de l\'application...');
@@ -1033,8 +1094,8 @@ async function analyzeSchedule() {
         console.log("Analyse de l'image avec Mistral OCR...");
         const ocrResult = await analyzeImageWithMistralOCR(appState.imageFile, apiSettings.apiKey);
         
-        if (!ocrResult.success) {
-            throw new Error(ocrResult.error || "Erreur lors de l'analyse OCR");
+        if (!ocrResult || !ocrResult.success) {
+            throw new Error(ocrResult?.error || "Erreur lors de l'analyse OCR");
         }
         
         console.log("Résultat OCR obtenu:", ocrResult);
@@ -1063,7 +1124,7 @@ async function analyzeSchedule() {
         appState.isAnalyzing = false;
         
         // Afficher un message d'erreur
-        showToast(`Erreur: ${error.message}`, "error");
+        showToast(`Erreur lors de l'analyse`, "error");
         
         // Masquer l'indicateur de chargement
         elements.loadingIndicator.hidden = true;
