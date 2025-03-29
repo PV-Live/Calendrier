@@ -104,20 +104,132 @@ function setupEventListeners() {
  * Charge les codes depuis le stockage local
  */
 function loadCodes() {
+    // Essayer d'abord de charger depuis appSettings (nouvelle méthode)
+    const appSettingsJson = localStorage.getItem('appSettings');
+    if (appSettingsJson) {
+        try {
+            const appSettings = JSON.parse(appSettingsJson);
+            if (appSettings && appSettings.codes) {
+                settingsState.codes = appSettings.codes;
+                console.log("Codes chargés depuis appSettings:", Object.keys(settingsState.codes));
+                return;
+            }
+        } catch (error) {
+            console.error('Erreur lors du chargement des codes depuis appSettings:', error);
+        }
+    }
+    
+    // Essayer ensuite de charger depuis codeLegend (ancienne méthode)
     const savedCodes = localStorage.getItem('codeLegend');
     if (savedCodes) {
         try {
             settingsState.codes = JSON.parse(savedCodes);
+            console.log("Codes chargés depuis codeLegend:", Object.keys(settingsState.codes));
+            
+            // Migrer les codes vers appSettings
+            saveToAppSettings();
+            
+            // Supprimer l'ancienne clé
+            localStorage.removeItem('codeLegend');
+            
+            return;
         } catch (error) {
-            console.error('Erreur lors du chargement des codes:', error);
-            settingsState.codes = getDefaultCodes();
+            console.error('Erreur lors du chargement des codes depuis codeLegend:', error);
         }
-    } else {
-        // Codes par défaut
-        settingsState.codes = getDefaultCodes();
-        // Sauvegarder les codes par défaut
-        saveCodes();
     }
+    
+    // Si aucun code n'est trouvé, essayer de charger depuis le fichier JSON
+    loadCodesFromJsonFile();
+}
+
+/**
+ * Sauvegarde les codes dans le stockage local
+ */
+function saveCodes() {
+    // Sauvegarder également dans appSettings
+    saveToAppSettings();
+}
+
+/**
+ * Sauvegarde les codes dans appSettings
+ */
+function saveToAppSettings() {
+    // Charger les paramètres actuels
+    let appSettings = {};
+    const appSettingsJson = localStorage.getItem('appSettings');
+    if (appSettingsJson) {
+        try {
+            appSettings = JSON.parse(appSettingsJson);
+        } catch (error) {
+            console.error('Erreur lors du chargement de appSettings:', error);
+        }
+    }
+    
+    // Mettre à jour les codes
+    appSettings.codes = settingsState.codes;
+    
+    // Sauvegarder
+    localStorage.setItem('appSettings', JSON.stringify(appSettings));
+    console.log("Codes sauvegardés dans appSettings:", Object.keys(settingsState.codes));
+}
+
+/**
+ * Charge les codes depuis le fichier JSON
+ */
+function loadCodesFromJsonFile() {
+    fetch('calendrier-leo-settings.json')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Fichier de paramètres non trouvé');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Fichier de paramètres chargé:", data);
+            
+            if (data.codes) {
+                // Mettre à jour les codes
+                settingsState.codes = data.codes;
+                console.log(`${Object.keys(data.codes).length} codes chargés depuis le fichier de paramètres`);
+                
+                // Sauvegarder les codes dans appSettings
+                saveToAppSettings();
+                
+                // Mettre à jour l'affichage
+                renderCodeList();
+            } else {
+                // Si le fichier JSON ne contient pas de codes, utiliser les codes par défaut
+                settingsState.codes = getDefaultCodes();
+                saveToAppSettings();
+            }
+            
+            // Mettre à jour les paramètres de l'API
+            if (data.apiSettings) {
+                settingsState.apiSettings = data.apiSettings;
+                
+                // Mettre à jour les champs du formulaire
+                if (elements.apiKeyInput && settingsState.apiSettings.apiKey) {
+                    elements.apiKeyInput.value = settingsState.apiSettings.apiKey;
+                }
+                
+                if (elements.modelSelect && settingsState.apiSettings.model) {
+                    elements.modelSelect.value = settingsState.apiSettings.model;
+                }
+                
+                if (elements.strictModeCheckbox) {
+                    elements.strictModeCheckbox.checked = settingsState.apiSettings.strictMode;
+                }
+                
+                // Sauvegarder les paramètres de l'API
+                saveApiSettings();
+            }
+        })
+        .catch(error => {
+            console.warn("Erreur lors du chargement du fichier de paramètres:", error);
+            // Utiliser les codes par défaut
+            settingsState.codes = getDefaultCodes();
+            saveToAppSettings();
+        });
 }
 
 /**
@@ -125,69 +237,136 @@ function loadCodes() {
  */
 function getDefaultCodes() {
     return {
-        'JBD': {
-            description: 'Jour de bureau - Domicile',
-            startTime: '09:00',
-            endTime: '17:00',
-            color: '#4285f4'
+        "C9E": {
+            "description": "C9E",
+            "startTime": "08:30",
+            "endTime": "18:00",
+            "color": "#ff7b24"
         },
-        'JBB': {
-            description: 'Jour de bureau - Bureau',
-            startTime: '09:00',
-            endTime: '17:00',
-            color: '#34a853'
+        "FH": {
+            "description": "Formation en heures",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#3e9c1c"
         },
-        'RH': {
-            description: 'Ressources Humaines',
-            startTime: '09:00',
-            endTime: '17:00',
-            color: '#ea4335'
+        "J2B": {
+            "description": "J2B",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#f4ed1f"
         },
-        'CP': {
-            description: 'Congé Payé',
-            startTime: '00:00',
-            endTime: '23:59',
-            color: '#fbbc05'
+        "J9B": {
+            "description": "J9B",
+            "startTime": "09:00",
+            "endTime": "15:30",
+            "color": "#f1f443"
         },
-        'M': {
-            description: 'Maladie',
-            startTime: '00:00',
-            endTime: '23:59',
-            color: '#ff6d01'
+        "JPX": {
+            "description": "JPX",
+            "startTime": "07:15",
+            "endTime": "19:30",
+            "color": "#fbff00"
         },
-        'F': {
-            description: 'Formation',
-            startTime: '09:00',
-            endTime: '17:00',
-            color: '#46bdc6'
+        "M7M": {
+            "description": "M7M",
+            "startTime": "07:45",
+            "endTime": "15:15",
+            "color": "#e7ea34"
+        },
+        "N7H": {
+            "description": "Nuit 7heure",
+            "startTime": "19:15",
+            "endTime": "07:30",
+            "color": "#1f71f4"
+        },
+        "RH": {
+            "description": "repos Hebdomadaire",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#f143f4"
+        },
+        "RC": {
+            "description": "Repos copensatoire",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#f143f4"
+        },
+        "M7E": {
+            "description": "M7E",
+            "startTime": "07:30",
+            "endTime": "15:00",
+            "color": "#f4ee43"
         }
     };
-}
-
-/**
- * Sauvegarde les codes dans le stockage local
- */
-function saveCodes() {
-    localStorage.setItem('codeLegend', JSON.stringify(settingsState.codes));
 }
 
 /**
  * Charge les paramètres de l'API depuis le stockage local
  */
 function loadApiSettings() {
+    // Essayer d'abord de charger depuis appSettings (nouvelle méthode)
+    const appSettingsJson = localStorage.getItem('appSettings');
+    if (appSettingsJson) {
+        try {
+            const appSettings = JSON.parse(appSettingsJson);
+            if (appSettings && appSettings.apiSettings) {
+                settingsState.apiSettings.apiKey = appSettings.apiSettings.apiKey || '';
+                settingsState.apiSettings.model = appSettings.apiSettings.model || 'mistral-ocr-medium';
+                settingsState.apiSettings.strictMode = appSettings.apiSettings.strictMode !== false;
+                
+                // Mettre à jour les champs du formulaire
+                elements.apiKeyInput.value = settingsState.apiSettings.apiKey;
+                elements.modelSelect.value = settingsState.apiSettings.model;
+                elements.strictModeCheckbox.checked = settingsState.apiSettings.strictMode;
+                
+                console.log("Paramètres API chargés depuis appSettings");
+                return;
+            }
+        } catch (error) {
+            console.error('Erreur lors du chargement des paramètres API depuis appSettings:', error);
+        }
+    }
+    
+    // Essayer ensuite de charger depuis apiSettings (ancienne méthode)
     const savedSettings = localStorage.getItem('apiSettings');
     if (savedSettings) {
         try {
-            settingsState.apiSettings = JSON.parse(savedSettings);
-            elements.apiKeyInput.value = settingsState.apiSettings.apiKey || '';
-            elements.modelSelect.value = settingsState.apiSettings.model || 'mistral-ocr-medium';
+            const parsedSettings = JSON.parse(savedSettings);
+            settingsState.apiSettings.apiKey = parsedSettings.apiKey || '';
+            settingsState.apiSettings.model = parsedSettings.model || 'mistral-ocr-medium';
+            settingsState.apiSettings.strictMode = parsedSettings.strictMode !== false;
             
-            // Charger l'état du mode strict (activé par défaut)
-            const strictMode = settingsState.apiSettings.strictMode !== false;
-            elements.strictModeCheckbox.checked = strictMode;
+            // Mettre à jour les champs du formulaire
+            elements.apiKeyInput.value = settingsState.apiSettings.apiKey;
+            elements.modelSelect.value = settingsState.apiSettings.model;
+            elements.strictModeCheckbox.checked = settingsState.apiSettings.strictMode;
+            
+            console.log("Paramètres API chargés depuis apiSettings (ancienne méthode)");
+            
+            // Migrer vers appSettings
+            saveApiSettings();
+            
+            // Supprimer l'ancienne clé
+            localStorage.removeItem('apiSettings');
+            
+            return;
         } catch (error) {
             console.error('Erreur lors du chargement des paramètres API:', error);
         }
+    }
+    
+    // Fallback sur la clé API stockée directement (pour la compatibilité)
+    const directApiKey = localStorage.getItem('mistralApiKey');
+    if (directApiKey) {
+        settingsState.apiSettings.apiKey = directApiKey;
+        elements.apiKeyInput.value = directApiKey;
+        console.log("Clé API chargée depuis le stockage direct (ancienne méthode)");
+        
+        // Migrer vers appSettings
+        saveApiSettings();
+        
+        // Supprimer l'ancienne clé
+        localStorage.removeItem('mistralApiKey');
     }
 }
 
@@ -195,7 +374,23 @@ function loadApiSettings() {
  * Sauvegarde les paramètres de l'API dans le stockage local
  */
 function saveApiSettings() {
-    localStorage.setItem('apiSettings', JSON.stringify(settingsState.apiSettings));
+    // Charger les paramètres actuels de appSettings
+    let appSettings = {};
+    const appSettingsJson = localStorage.getItem('appSettings');
+    if (appSettingsJson) {
+        try {
+            appSettings = JSON.parse(appSettingsJson);
+        } catch (error) {
+            console.error('Erreur lors du chargement de appSettings:', error);
+        }
+    }
+    
+    // Mettre à jour les paramètres API
+    appSettings.apiSettings = settingsState.apiSettings;
+    
+    // Sauvegarder dans appSettings
+    localStorage.setItem('appSettings', JSON.stringify(appSettings));
+    console.log("Paramètres API sauvegardés dans appSettings");
 }
 
 /**

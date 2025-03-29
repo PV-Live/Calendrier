@@ -811,3 +811,165 @@ select:focus {
     padding: 20px;
     font-style: italic;
 }
+
+/* Formulaire de saisie manuelle */
+.manual-entry-form {
+    display: none;
+    background-color: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    position: relative;
+}
+
+.manual-entry-form h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.manual-entry-form p {
+    margin-bottom: 1rem;
+    color: var(--dark-gray);
+}
+
+.manual-entry-form textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--medium-gray);
+    border-radius: 4px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    resize: vertical;
+}
+
+.manual-entry-form textarea:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+.manual-entry-form button {
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+#manual-entry-button {
+    margin-left: 0.5rem;
+}
+
+/* Sélecteur de code */
+.code-select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--medium-gray);
+    border-radius: 4px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 1rem;
+    transition: var(--transition);
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 16px;
+    padding-right: 2rem;
+}
+
+.code-select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+.code-select option {
+    padding: 0.5rem;
+    background-color: var(--white);
+}
+
+/* Légende des codes */
+.code-legend {
+    margin-top: 2rem;
+    background-color: var(--white);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    box-shadow: var(--shadow);
+}
+
+.code-legend h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.code-legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.code-legend-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.code-legend-color {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 3px;
+    margin-right: 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Couleurs spécifiques pour les codes */
+.code-RHE {
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.code-M7M {
+    background-color: #ffeb3b;
+    color: #333;
+}
+
+.code-C9E {
+    background-color: #4caf50;
+    color: white;
+}
+
+.code-JRD {
+    background-color: #ff9800;
+    color: white;
+}
+
+.code-RH {
+    background-color: #e91e63;
+    color: white;
+}
+
+.code-RC {
+    background-color: #2196f3;
+    color: white;
+}
+
+.code-JPX {
+    background-color: #9c27b0;
+    color: white;
+}
+
+.code-NNE {
+    background-color: #00bcd4;
+    color: white;
+}
+
+.code-CNE {
+    background-color: #795548;
+    color: white;
+}
