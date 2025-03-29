@@ -189,15 +189,53 @@ table img {
 }
 
 #removeImage:hover {
-    background-color: var(--accent-color);
-    color: var(--white);
-    transform: scale(1.1);
+    background-color: rgba(255, 255, 255, 1);
+    transform: scale(1.05);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-#removeImage:active {
-    transform: scale(0.95);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+/* Style pour le bouton de suppression avec croix rouge */
+.delete-btn-cross {
+    background-color: #ff4d4d !important; /* Rouge vif */
+    border: none !important;
+    border-radius: 50% !important;
+    width: 36px !important;
+    height: 36px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) !important;
+    position: relative !important;
+    transition: all 0.2s ease !important;
+}
+
+.delete-btn-cross::before,
+.delete-btn-cross::after {
+    content: "" !important;
+    position: absolute !important;
+    width: 20px !important;
+    height: 3px !important;
+    background-color: white !important;
+    border-radius: 2px !important;
+}
+
+.delete-btn-cross::before {
+    transform: rotate(45deg) !important;
+}
+
+.delete-btn-cross::after {
+    transform: rotate(-45deg) !important;
+}
+
+.delete-btn-cross:hover {
+    transform: scale(1.1) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.delete-btn-cross span {
+    display: none !important; /* Cache le texte du bouton */
 }
 
 /* Formulaires */
