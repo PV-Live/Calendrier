@@ -569,16 +569,35 @@ function displayResults(result) {
         return;
     }
     
+    // Modifier l'en-tête du tableau pour afficher "Horaires" au lieu de "Description"
+    const tableHeaders = document.querySelectorAll('#resultsTable th');
+    if (tableHeaders && tableHeaders.length >= 3) {
+        tableHeaders[2].textContent = 'Horaires';
+    }
+    
+    // Obtenir le mois et l'année pour calculer les dates exactes
+    const month = result.month || new Date().getMonth() + 1; // Mois de 1 à 12
+    const year = result.year || new Date().getFullYear();
+    
     // Ajouter chaque code au tableau
     result.codes.forEach((codeInfo, index) => {
         // Déterminer le jour en fonction de l'index et du mois
         const day = index + 1;
         
+        // Créer un objet Date pour obtenir le jour de la semaine
+        const date = new Date(year, month - 1, day);
+        const dayOfWeek = date.toLocaleDateString('fr-FR', { weekday: 'long' });
+        const dayOfMonth = date.getDate();
+        const monthName = date.toLocaleDateString('fr-FR', { month: 'long' });
+        
+        // Formater le jour (ex: "Lundi 1 mars")
+        const formattedDay = `${dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1)} ${dayOfMonth} ${monthName}`;
+        
         const row = document.createElement('tr');
         
         // Colonne du jour
         const dayCell = document.createElement('td');
-        dayCell.textContent = `Jour ${day}`;
+        dayCell.textContent = formattedDay;
         row.appendChild(dayCell);
         
         // Colonne du code
@@ -620,10 +639,11 @@ function displayResults(result) {
             // Mettre à jour l'état de l'application
             appState.results = result;
             
-            // Mettre à jour la description et la couleur
-            const descriptionElement = row.querySelector('.code-description');
-            if (descriptionElement) {
-                descriptionElement.textContent = getCodeDescription(newCode) || `Code: ${newCode}`;
+            // Mettre à jour les horaires
+            const hoursElement = row.querySelector('.code-hours');
+            if (hoursElement) {
+                const hours = getCodeHours(newCode);
+                hoursElement.textContent = hours || 'Horaires non définis';
             }
             
             // Mettre à jour la couleur de fond
@@ -644,13 +664,17 @@ function displayResults(result) {
         codeCell.appendChild(codeSelect);
         row.appendChild(codeCell);
         
-        // Colonne de la description
-        const descriptionCell = document.createElement('td');
-        const descriptionSpan = document.createElement('span');
-        descriptionSpan.className = 'code-description';
-        descriptionSpan.textContent = getCodeDescription(codeInfo) || `Code: ${codeInfo}`;
-        descriptionCell.appendChild(descriptionSpan);
-        row.appendChild(descriptionCell);
+        // Colonne des horaires
+        const hoursCell = document.createElement('td');
+        const hoursSpan = document.createElement('span');
+        hoursSpan.className = 'code-hours';
+        
+        // Obtenir les horaires du code
+        const hours = getCodeHours(codeInfo);
+        hoursSpan.textContent = hours || 'Horaires non définis';
+        
+        hoursCell.appendChild(hoursSpan);
+        row.appendChild(hoursCell);
         
         // Ajouter la ligne au tableau
         elements.resultsTableBody.appendChild(row);
@@ -673,31 +697,33 @@ function displayResults(result) {
     const codeLegend = createCodeLegend();
     elements.resultsContent.appendChild(codeLegend);
     
-    // Ajouter un affichage du texte OCR brut
-    const rawOcrContainer = document.createElement('div');
-    rawOcrContainer.className = 'raw-ocr-container';
+    // S'assurer que le loader est bien masqué
+    if (elements.loadingIndicator) {
+        elements.loadingIndicator.hidden = true;
+    }
+}
+
+/**
+ * Obtient les horaires correspondant à un code
+ * @param {string} code - Le code
+ * @returns {string|null} - Les horaires correspondants ou null si aucune correspondance
+ */
+function getCodeHours(code) {
+    // Vérifier si le code existe dans les codes valides
+    if (appState.codesData && appState.codesData[code]) {
+        const startTime = appState.codesData[code].startTime || '';
+        const endTime = appState.codesData[code].endTime || '';
+        
+        if (startTime && endTime) {
+            return `${startTime} - ${endTime}`;
+        } else if (startTime) {
+            return `Début: ${startTime}`;
+        } else if (endTime) {
+            return `Fin: ${endTime}`;
+        }
+    }
     
-    const rawOcrTitle = document.createElement('h3');
-    rawOcrTitle.textContent = 'Texte OCR brut (pour débogage)';
-    rawOcrContainer.appendChild(rawOcrTitle);
-    
-    const rawOcrContent = document.createElement('pre');
-    rawOcrContent.className = 'raw-ocr-content';
-    rawOcrContent.textContent = result.rawText || 'Aucun texte OCR disponible';
-    rawOcrContainer.appendChild(rawOcrContent);
-    
-    // Bouton pour copier le texte OCR
-    const copyButton = document.createElement('button');
-    copyButton.textContent = 'Copier le texte OCR';
-    copyButton.className = 'copy-button';
-    copyButton.onclick = function() {
-        navigator.clipboard.writeText(result.rawText || '')
-            .then(() => showToast('Texte OCR copié dans le presse-papier', 'success'))
-            .catch(err => showToast('Erreur lors de la copie: ' + err, 'error'));
-    };
-    rawOcrContainer.appendChild(copyButton);
-    
-    elements.resultsContent.appendChild(rawOcrContainer);
+    return null;
 }
 
 /**
@@ -1639,9 +1665,17 @@ async function analyzeSchedule() {
     appState.isAnalyzing = true;
     
     // Afficher l'indicateur de chargement
-    elements.loadingIndicator.hidden = false;
-    elements.resultsContent.hidden = true;
-    elements.resultsSection.hidden = false;
+    if (elements.loadingIndicator) {
+        elements.loadingIndicator.hidden = false;
+    }
+    
+    if (elements.resultsContent) {
+        elements.resultsContent.hidden = true;
+    }
+    
+    if (elements.resultsSection) {
+        elements.resultsSection.hidden = false;
+    }
     
     try {
         // Charger les paramètres de l'API directement depuis appSettings
@@ -1724,6 +1758,11 @@ async function analyzeSchedule() {
         appState.results = result;
         appState.isAnalyzing = false;
         
+        // S'assurer que le loader est masqué avant d'afficher les résultats
+        if (elements.loadingIndicator) {
+            elements.loadingIndicator.hidden = true;
+        }
+        
         // Afficher les résultats
         displayResults(result);
         
@@ -1739,6 +1778,13 @@ async function analyzeSchedule() {
         showToast(`Erreur lors de l'analyse`, "error");
         
         // Masquer l'indicateur de chargement
-        elements.loadingIndicator.hidden = true;
+        if (elements.loadingIndicator) {
+            elements.loadingIndicator.hidden = true;
+        }
+    } finally {
+        // S'assurer que le loader est toujours masqué, quoi qu'il arrive
+        if (elements.loadingIndicator) {
+            elements.loadingIndicator.hidden = true;
+        }
     }
 }
