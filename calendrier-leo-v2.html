@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendrier Leo - OCR et Export</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .result {
+            white-space: pre-wrap;
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+            display: none;
+            margin-top: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+            overflow-x: auto;
+            display: block;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .code-cell {
+            font-family: monospace;
+            background-color: #f0f0f0;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .tab-container {
+            margin-top: 20px;
+        }
+        .tab {
+            overflow: hidden;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+        }
+        .tab button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+            margin: 0;
+        }
+        .tab button:hover {
+            background-color: #ddd;
+        }
+        .tab button.active {
+            background-color: #ccc;
+        }
+        .tabcontent {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-top: none;
+        }
+        .settings-section {
+            margin-bottom: 15px;
+        }
+        .settings-section label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .settings-section input[type="text"],
+        .settings-section select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .export-buttons {
+            margin-top: 20px;
+        }
+        .export-buttons button {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Calendrier Leo - OCR et Export</h1>
+    
+    <div class="tab">
+        <button class="tablinks active" onclick="openTab(event, 'extraction')">Extraction</button>
+        <button class="tablinks" onclick="openTab(event, 'settings')">Paramètres</button>
+        <button class="tablinks" onclick="openTab(event, 'about')">À propos</button>
+    </div>
+
+    <div id="extraction" class="tabcontent" style="display: block;">
+        <div class="container">
+            <h2>Sélection de l'image</h2>
+            <input type="file" id="imageInput" accept="image/*">
+            <button id="analyzeButton">Analyser l'image</button>
+            <div id="loader" class="loader"></div>
+            <div id="status"></div>
+        </div>
+
+        <div class="container">
+            <h2>Résultats de l'analyse</h2>
+            <div class="tab-container">
+                <div class="tab">
+                    <button class="tablinks active" onclick="openTab(event, 'rawText')">Texte brut</button>
+                    <button class="tablinks" onclick="openTab(event, 'tableView')">Tableau</button>
+                    <button class="tablinks" onclick="openTab(event, 'personView')">Par personne</button>
+                </div>
+                
+                <div id="rawText" class="tabcontent" style="display: block;">
+                    <h3>Texte OCR brut</h3>
+                    <div id="ocrResult" class="result"></div>
+                </div>
+                
+                <div id="tableView" class="tabcontent">
+                    <h3>Données structurées</h3>
+                    <div id="tableResult"></div>
+                </div>
+                
+                <div id="personView" class="tabcontent">
+                    <h3>Codes par personne</h3>
+                    <select id="personSelect">
+                        <option value="">Sélectionnez une personne</option>
+                    </select>
+                    <div id="personCodes"></div>
+                    
+                    <div class="export-buttons">
+                        <h3>Exporter les données</h3>
+                        <button id="exportIcsButton">Exporter en ICS</button>
+                        <button id="exportJsonButton">Exporter en JSON</button>
+                        <button id="copyButton">Copier au presse-papier</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings" class="tabcontent">
+        <div class="container">
+            <h2>Paramètres de l'API</h2>
+            <div class="settings-section">
+                <label for="apiKeyInput">Clé API Mistral:</label>
+                <input type="password" id="apiKeyInput" placeholder="Entrez votre clé API Mistral">
+            </div>
+            
+            <div class="settings-section">
+                <label for="modelSelect">Modèle OCR:</label>
+                <select id="modelSelect">
+                    <option value="mistral-ocr-latest">mistral-ocr-latest (recommandé)</option>
+                    <option value="mistral-ocr">mistral-ocr</option>
+                </select>
+            </div>
+            
+            <div class="settings-section">
+                <label for="validCodesInput">Codes valides (séparés par des virgules):</label>
+                <input type="text" id="validCodesInput" placeholder="RH, 50%, 60%, 300%, 400%, etc.">
+            </div>
+            
+            <button id="saveSettingsButton">Enregistrer les paramètres</button>
+            <div id="settingsStatus"></div>
+        </div>
+    </div>
+
+    <div id="about" class="tabcontent">
+        <div class="container">
+            <h2>À propos de Calendrier Leo</h2>
+            <p>Cette application permet d'extraire les données de planning à partir d'images en utilisant l'API Mistral OCR.</p>
+            <p>Version: 2.0</p>
+            <p>Développé par Antoine Lemay</p>
+        </div>
+    </div>
+</body>
+<script>
+    // Variables globales
+    let currentImage = null;
+    let extractedData = null;
+    let validCodes = ["RH", "50%", "60%", "300%", "400%"];
+    
+    // Éléments DOM
+    const imageInput = document.getElementById('imageInput');
+    const analyzeButton = document.getElementById('analyzeButton');
+    const loader = document.getElementById('loader');
+    const ocrResult = document.getElementById('ocrResult');
+    const tableResult = document.getElementById('tableResult');
+    const personSelect = document.getElementById('personSelect');
+    const personCodes = document.getElementById('personCodes');
+    const statusElement = document.getElementById('status');
+    const exportIcsButton = document.getElementById('exportIcsButton');
+    const exportJsonButton = document.getElementById('exportJsonButton');
+    const copyButton = document.getElementById('copyButton');
+    
+    // Éléments des paramètres
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    const modelSelect = document.getElementById('modelSelect');
+    const validCodesInput = document.getElementById('validCodesInput');
+    const saveSettingsButton = document.getElementById('saveSettingsButton');
+    const settingsStatus = document.getElementById('settingsStatus');
+    
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', function() {
+        // Charger les paramètres
+        loadSettings();
+        
+        // Initialiser les gestionnaires d'événements
+        imageInput.addEventListener('change', handleImageSelect);
+        analyzeButton.addEventListener('click', analyzeImage);
+        personSelect.addEventListener('change', displayPersonCodes);
+        exportIcsButton.addEventListener('click', exportToICS);
+        exportJsonButton.addEventListener('click', exportToJSON);
+        copyButton.addEventListener('click', copyToClipboard);
+        saveSettingsButton.addEventListener('click', saveSettings);
+        
+        // Ouvrir l'onglet d'extraction par défaut
+        document.getElementById('extraction').style.display = 'block';
+    });
+    
+    /**
+     * Charge les paramètres depuis le localStorage
+     */
+    function loadSettings() {
+        // Charger la clé API
+        const apiKey = localStorage.getItem('mistralApiKey');
+        if (apiKey) {
+            apiKeyInput.value = apiKey;
+        }
+        
+        // Charger le modèle
+        const model = localStorage.getItem('mistralModel') || 'mistral-ocr-latest';
+        modelSelect.value = model;
+        
+        // Charger les codes valides
+        const savedCodes = localStorage.getItem('validCodes');
+        if (savedCodes) {
+            validCodes = JSON.parse(savedCodes);
+            validCodesInput.value = validCodes.join(', ');
+        } else {
+            validCodesInput.value = validCodes.join(', ');
+        }
+    }
+    
+    /**
+     * Sauvegarde les paramètres dans le localStorage
+     */
+    function saveSettings() {
+        // Sauvegarder la clé API
+        localStorage.setItem('mistralApiKey', apiKeyInput.value);
+        
+        // Sauvegarder le modèle
+        localStorage.setItem('mistralModel', modelSelect.value);
+        
+        // Sauvegarder les codes valides
+        const codesArray = validCodesInput.value.split(',').map(code => code.trim()).filter(code => code);
+        validCodes = codesArray;
+        localStorage.setItem('validCodes', JSON.stringify(validCodes));
+        
+        // Afficher un message de confirmation
+        settingsStatus.textContent = "Paramètres sauvegardés avec succès!";
+        settingsStatus.style.color = "green";
+        setTimeout(() => {
+            settingsStatus.textContent = "";
+        }, 3000);
+    }
+    
+    /**
+     * Gère la sélection d'une image
+     */
+    function handleImageSelect(event) {
+        const file = event.target.files[0];
+        if (file && file.type.match('image.*')) {
+            currentImage = file;
+            updateStatus("Image sélectionnée: " + file.name, "info");
+        } else {
+            updateStatus("Veuillez sélectionner une image valide", "error");
+        }
+    }
+    
+    /**
+     * Analyse l'image avec Mistral OCR
+     */
+    function analyzeImage() {
+        if (!currentImage) {
+            updateStatus("Veuillez d'abord sélectionner une image", "error");
+            return;
+        }
+        
+        // Vérifier si la clé API est configurée
+        const apiKey = localStorage.getItem('mistralApiKey');
+        if (!apiKey) {
+            updateStatus("Veuillez configurer votre clé API Mistral dans les paramètres", "error");
+            return;
+        }
+        
+        // Afficher le loader
+        loader.style.display = 'block';
+        updateStatus("Analyse de l'image en cours...", "info");
+        
+        // Convertir l'image en base64
+        convertImageToBase64(currentImage)
+            .then(base64Image => {
+                // Préparer les données pour l'API
+                const model = localStorage.getItem('mistralModel') || 'mistral-ocr-latest';
+                const requestData = {
+                    model: model,
+                    document: {
+                        type: "image_url",
+                        image_url: `data:${currentImage.type};base64,${base64Image}`
+                    }
+                };
+                
+                // Appeler l'API Mistral OCR
+                fetch('https://api.mistral.ai/v1/ocr', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify(requestData)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Erreur HTTP: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Masquer le loader
+                    loader.style.display = 'none';
+                    
+                    // Extraire le texte OCR
+                    const ocrText = data.pages[0].markdown;
+                    
+                    // Afficher le texte OCR brut
+                    ocrResult.textContent = ocrText;
+                    
+                    // Traiter le texte OCR
+                    processMarkdownTableWithCorrection(ocrText);
+                    
+                    // Mettre à jour le statut
+                    updateStatus("Analyse terminée avec succès", "success");
+                })
+                .catch(error => {
+                    // Masquer le loader
+                    loader.style.display = 'none';
+                    
+                    // Afficher l'erreur
+                    updateStatus("Erreur lors de l'analyse: " + error.message, "error");
+                    console.error("Erreur lors de l'analyse OCR:", error);
+                });
+            })
+            .catch(error => {
+                // Masquer le loader
+                loader.style.display = 'none';
+                
+                // Afficher l'erreur
+                updateStatus("Erreur lors de la conversion de l'image: " + error.message, "error");
+                console.error("Erreur lors de la conversion de l'image:", error);
+            });
+    }
+    
+    /**
+     * Traite un tableau Markdown pour en extraire les données structurées
+     * avec correction des codes
+     */
+    function processMarkdownTableWithCorrection(markdownText) {
+        console.log("Traitement du tableau Markdown avec correction...");
+        
+        // Vérifier si le texte est vide
+        if (!markdownText || markdownText.trim() === '') {
+            console.log("Texte Markdown vide");
+            return;
+        }
+        
+        // Extraire les lignes du tableau
+        const lines = markdownText.trim().split('\n');
+        
+        // Vérifier si nous avons au moins une ligne
+        if (lines.length === 0) {
+            console.log("Tableau Markdown vide");
+            return;
+        }
+        
+        // Extraire les cellules de chaque ligne
+        const data = [];
+        
+        for (const line of lines) {
+            // Ignorer les lignes de séparation
+            if (line.trim().startsWith('|--') || line.trim() === '') {
+                continue;
+            }
+            
+            // Extraire les cellules
+            const cells = line.split('|').map(cell => cell.trim());
+            
+            // Supprimer les cellules vides au début et à la fin
+            if (cells[0] === '') cells.shift();
+            if (cells[cells.length - 1] === '') cells.pop();
+            
+            // Ajouter la ligne au tableau de données
+            if (cells.length > 0) {
+                // Corriger les codes dans les cellules
+                const correctedCells = cells.map(cell => {
+                    // Si la cellule est vide ou ne semble pas être un code, la laisser telle quelle
+                    if (!cell || cell === '' || cell.length > 10) {
+                        return cell;
+                    }
+                    
+                    // Corriger les codes connus
+                    return correctCode(cell);
+                });
+                
+                data.push(correctedCells);
+            }
+        }
+        
+        // Vérifier si nous avons des données
+        if (data.length === 0) {
+            console.log("Tableau Markdown incomplet");
+            return;
+        }
+        
+        // Stocker les données extraites
+        extractedData = data;
+        
+        // Afficher le tableau
+        displayTable(data);
+        
+        // Mettre à jour la liste déroulante des personnes
+        updatePersonSelect(data);
+    }
+    
+    /**
+     * Corrige un code en fonction des codes valides
+     */
+    function correctCode(code) {
+        // Si le code est déjà valide, le retourner tel quel
+        if (validCodes.includes(code)) {
+            return code;
+        }
+        
+        // Corrections spécifiques connues
+        if (code === 'RHE') return 'RH';
+        
+        // Rechercher le code valide le plus proche
+        let bestMatch = '';
+        let bestScore = 0;
+        
+        for (const validCode of validCodes) {
+            const score = similarityScore(code, validCode);
+            if (score > bestScore) {
+                bestScore = score;
+                bestMatch = validCode;
+            }
+        }
+        
+        // Si le score est suffisamment élevé, retourner le code corrigé
+        if (bestScore > 0.5) {
+            console.log(`Correction de code: "${code}" -> "${bestMatch}" (score: ${bestScore})`);
+            return bestMatch;
+        }
+        
+        // Sinon, retourner le code original
+        return code;
+    }
+    
+    /**
+     * Calcule un score de similarité entre deux chaînes
+     */
+    function similarityScore(str1, str2) {
+        // Convertir en minuscules pour une comparaison insensible à la casse
+        const s1 = str1.toLowerCase();
+        const s2 = str2.toLowerCase();
+        
+        // Si les chaînes sont identiques, retourner 1
+        if (s1 === s2) return 1;
+        
+        // Calculer la distance de Levenshtein
+        const m = s1.length;
+        const n = s2.length;
+        
+        // Matrice pour la programmation dynamique
+        const d = Array(m + 1).fill().map(() => Array(n + 1).fill(0));
+        
+        // Initialiser la première colonne et la première ligne
+        for (let i = 0; i <= m; i++) d[i][0] = i;
+        for (let j = 0; j <= n; j++) d[0][j] = j;
+        
+        // Remplir la matrice
+        for (let i = 1; i <= m; i++) {
+            for (let j = 1; j <= n; j++) {
+                const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+                d[i][j] = Math.min(
+                    d[i - 1][j] + 1,      // suppression
+                    d[i][j - 1] + 1,      // insertion
+                    d[i - 1][j - 1] + cost // substitution
+                );
+            }
+        }
+        
+        // Calculer le score de similarité
+        const maxLength = Math.max(m, n);
+        return 1 - d[m][n] / maxLength;
+    }
+    
+    /**
+     * Affiche les données du tableau dans un tableau HTML
+     */
+    function displayTable(data) {
+        // Créer le tableau HTML
+        let tableHtml = '<table>';
+        
+        // Ajouter les lignes
+        for (let i = 0; i < data.length; i++) {
+            tableHtml += '<tr>';
+            
+            // Ajouter les cellules
+            for (let j = 0; j < data[i].length; j++) {
+                const cell = data[i][j];
+                
+                // Déterminer si la cellule est un code
+                const isCode = j > 0 && i > 0 && validCodes.includes(cell);
+                
+                // Ajouter la classe appropriée
+                if (isCode) {
+                    tableHtml += `<td class="code-cell">${cell}</td>`;
+                } else {
+                    tableHtml += `<td>${cell}</td>`;
+                }
+            }
+            
+            tableHtml += '</tr>';
+        }
+        
+        tableHtml += '</table>';
+        
+        // Afficher le tableau
+        tableResult.innerHTML = tableHtml;
+    }
+    
+    /**
+     * Met à jour la liste déroulante des personnes
+     */
+    function updatePersonSelect(data) {
+        // Vider la liste déroulante
+        personSelect.innerHTML = '<option value="">Sélectionnez une personne</option>';
+        
+        // Extraire les noms de personnes (première colonne)
+        const persons = [];
+        
+        for (let i = 1; i < data.length; i++) {
+            if (data[i].length > 0 && data[i][0] && data[i][0].trim() !== '') {
+                persons.push(data[i][0]);
+            }
+        }
+        
+        // Ajouter les options à la liste déroulante
+        for (const person of persons) {
+            const option = document.createElement('option');
+            option.value = person;
+            option.textContent = person;
+            personSelect.appendChild(option);
+        }
+        
+        // Mettre à jour le statut
+        updateStatus(`${persons.length} personnes trouvées`, "success");
+    }
+    
+    /**
+     * Affiche les codes pour la personne sélectionnée
+     */
+    function displayPersonCodes() {
+        // Vérifier si une personne est sélectionnée
+        const selectedPerson = personSelect.value;
+        if (!selectedPerson || !extractedData) {
+            personCodes.innerHTML = '<p>Veuillez sélectionner une personne</p>';
+            return;
+        }
+        
+        // Trouver l'index de la personne dans les données
+        let personIndex = -1;
+        for (let i = 1; i < extractedData.length; i++) {
+            if (extractedData[i][0] === selectedPerson) {
+                personIndex = i;
+                break;
+            }
+        }
+        
+        // Vérifier si la personne a été trouvée
+        if (personIndex === -1) {
+            personCodes.innerHTML = '<p>Personne non trouvée dans les données</p>';
+            return;
+        }
+        
+        // Extraire les codes de la personne
+        const codes = [];
+        for (let j = 1; j < extractedData[personIndex].length; j++) {
+            const code = extractedData[personIndex][j];
+            if (code && code.trim() !== '') {
+                codes.push({
+                    code: code,
+                    day: j
+                });
+            }
+        }
+        
+        // Afficher les codes
+        let codesHtml = '<h4>Codes pour ' + selectedPerson + '</h4>';
+        
+        if (codes.length === 0) {
+            codesHtml += '<p>Aucun code trouvé pour cette personne</p>';
+        } else {
+            codesHtml += '<ul>';
+            for (const codeInfo of codes) {
+                codesHtml += `<li>Jour ${codeInfo.day}: <span class="code-cell">${codeInfo.code}</span></li>`;
+            }
+            codesHtml += '</ul>';
+        }
+        
+        personCodes.innerHTML = codesHtml;
+    }
+    
+    /**
+     * Exporte les données au format ICS
+     */
+    function exportToICS() {
+        // Vérifier si une personne est sélectionnée
+        const selectedPerson = personSelect.value;
+        if (!selectedPerson || !extractedData) {
+            updateStatus("Veuillez sélectionner une personne", "error");
+            return;
+        }
+        
+        // Trouver l'index de la personne dans les données
+        let personIndex = -1;
+        for (let i = 1; i < extractedData.length; i++) {
+            if (extractedData[i][0] === selectedPerson) {
+                personIndex = i;
+                break;
+            }
+        }
+        
+        // Vérifier si la personne a été trouvée
+        if (personIndex === -1) {
+            updateStatus("Personne non trouvée dans les données", "error");
+            return;
+        }
+        
+        // Demander à l'utilisateur la date de début
+        const startDateStr = prompt("Veuillez entrer la date de début (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+        if (!startDateStr) return;
+        
+        // Valider la date
+        const startDate = new Date(startDateStr);
+        if (isNaN(startDate.getTime())) {
+            updateStatus("Date invalide", "error");
+            return;
+        }
+        
+        // Générer le contenu ICS
+        let icsContent = "BEGIN:VCALENDAR\r\n";
+        icsContent += "VERSION:2.0\r\n";
+        icsContent += "PRODID:-//Calendrier Leo//FR\r\n";
+        icsContent += "CALSCALE:GREGORIAN\r\n";
+        
+        // Extraire les codes de la personne
+        for (let j = 1; j < extractedData[personIndex].length; j++) {
+            const code = extractedData[personIndex][j];
+            if (code && code.trim() !== '') {
+                // Calculer la date de l'événement
+                const eventDate = new Date(startDate);
+                eventDate.setDate(startDate.getDate() + j - 1);
+                
+                // Formater la date au format ICS
+                const dateStr = eventDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                
+                // Ajouter l'événement
+                icsContent += "BEGIN:VEVENT\r\n";
+                icsContent += `DTSTART:${dateStr}\r\n`;
+                icsContent += `DTEND:${dateStr}\r\n`;
+                icsContent += `SUMMARY:${selectedPerson} - ${code}\r\n`;
+                icsContent += `DESCRIPTION:Code: ${code}\r\n`;
+                icsContent += "END:VEVENT\r\n";
+            }
+        }
+        
+        icsContent += "END:VCALENDAR";
+        
+        // Créer un lien de téléchargement
+        const blob = new Blob([icsContent], { type: 'text/calendar' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `calendrier_${selectedPerson.replace(/\s+/g, '_')}.ics`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        updateStatus("Fichier ICS généré avec succès", "success");
+    }
+    
+    /**
+     * Exporte les données au format JSON
+     */
+    function exportToJSON() {
+        // Vérifier si des données sont disponibles
+        if (!extractedData) {
+            updateStatus("Aucune donnée à exporter", "error");
+            return;
+        }
+        
+        // Convertir les données en format JSON
+        const jsonData = JSON.stringify(extractedData, null, 2);
+        
+        // Créer un lien de téléchargement
+        const blob = new Blob([jsonData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'calendrier_data.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        updateStatus("Fichier JSON généré avec succès", "success");
+    }
+    
+    /**
+     * Copie les données au presse-papier
+     */
+    function copyToClipboard() {
+        // Vérifier si une personne est sélectionnée
+        const selectedPerson = personSelect.value;
+        if (!selectedPerson || !extractedData) {
+            updateStatus("Veuillez sélectionner une personne", "error");
+            return;
+        }
+        
+        // Trouver l'index de la personne dans les données
+        let personIndex = -1;
+        for (let i = 1; i < extractedData.length; i++) {
+            if (extractedData[i][0] === selectedPerson) {
+                personIndex = i;
+                break;
+            }
+        }
+        
+        // Vérifier si la personne a été trouvée
+        if (personIndex === -1) {
+            updateStatus("Personne non trouvée dans les données", "error");
+            return;
+        }
+        
+        // Extraire les codes de la personne
+        let textToCopy = `Codes pour ${selectedPerson}:\n`;
+        
+        for (let j = 1; j < extractedData[personIndex].length; j++) {
+            const code = extractedData[personIndex][j];
+            if (code && code.trim() !== '') {
+                textToCopy += `Jour ${j}: ${code}\n`;
+            }
+        }
+        
+        // Copier au presse-papier
+        navigator.clipboard.writeText(textToCopy)
+            .then(() => {
+                updateStatus("Données copiées au presse-papier", "success");
+            })
+            .catch(err => {
+                updateStatus("Erreur lors de la copie: " + err.message, "error");
+                console.error("Erreur lors de la copie au presse-papier:", err);
+            });
+    }
+    
+    /**
+     * Convertit une image en base64
+     */
+    function convertImageToBase64(imageFile) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const base64 = e.target.result.split(',')[1];
+                resolve(base64);
+            };
+            
+            reader.onerror = function(error) {
+                reject(error);
+            };
+            
+            reader.readAsDataURL(imageFile);
+        });
+    }
+    
+    /**
+     * Met à jour le statut de l'analyse
+     */
+    function updateStatus(message, type) {
+        statusElement.textContent = message;
+        statusElement.className = '';
+        statusElement.classList.add(type);
+        
+        // Styles pour les différents types de messages
+        if (type === 'error') {
+            statusElement.style.color = 'red';
+        } else if (type === 'success') {
+            statusElement.style.color = 'green';
+        } else if (type === 'info') {
+            statusElement.style.color = 'blue';
+        }
+    }
+    
+    /**
+     * Ouvre un onglet
+     */
+    function openTab(evt, tabName) {
+        // Masquer tous les contenus d'onglets
+        const tabcontents = document.getElementsByClassName('tabcontent');
+        for (let i = 0; i < tabcontents.length; i++) {
+            tabcontents[i].style.display = 'none';
+        }
+        
+        // Désactiver tous les boutons d'onglets
+        const tablinks = document.getElementsByClassName('tablinks');
+        for (let i = 0; i < tablinks.length; i++) {
+            tablinks[i].classList.remove('active');
+        }
+        
+        // Afficher le contenu de l'onglet sélectionné
+        document.getElementById(tabName).style.display = 'block';
+        
+        // Activer le bouton de l'onglet sélectionné
+        if (evt && evt.currentTarget) {
+            evt.currentTarget.classList.add('active');
+        }
+    }
+</script>
+</html>

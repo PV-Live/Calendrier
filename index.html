@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4285f4">
+    <title>Calendrier Leo - Analyseur de Planning</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="images/icons/icon-72x72.png">
+    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+    <!-- Polices -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>Calendrier Leo</h1>
+        <p>Analyseur de Planning avec Mistral OCR</p>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Section d'upload -->
+            <div class="card upload-section" id="uploadSection">
+                <h2>Importer une image de planning</h2>
+                <div class="drop-area" id="dropArea">
+                    <p>Glissez-déposez une image ici ou</p>
+                    <label for="fileInput" class="button">Parcourir</label>
+                    <input type="file" id="fileInput" accept="image/*" hidden>
+                </div>
+                <div class="preview-container" id="previewContainer" hidden>
+                    <img id="filePreview" alt="Aperçu de l'image">
+                    <button id="removeImage" class="button button-secondary">Supprimer</button>
+                </div>
+            </div>
+
+            <!-- Section de traitement -->
+            <div class="card processing-section" id="processingSection">
+                <h2>Analyse du planning</h2>
+                
+                <!-- Conteneur pour le champ de saisie du nom -->
+                <div class="form-group" id="personNameContainer">
+                    <label for="personNameInput">Nom de la personne</label>
+                    <input type="text" id="personNameInput" placeholder="Ex: Dupont Jean">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="monthSelect">Mois</label>
+                        <select id="monthSelect">
+                            <option value="1">Janvier</option>
+                            <option value="2">Février</option>
+                            <option value="3">Mars</option>
+                            <option value="4">Avril</option>
+                            <option value="5">Mai</option>
+                            <option value="6">Juin</option>
+                            <option value="7">Juillet</option>
+                            <option value="8">Août</option>
+                            <option value="9">Septembre</option>
+                            <option value="10">Octobre</option>
+                            <option value="11">Novembre</option>
+                            <option value="12">Décembre</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="yearInput">Année</label>
+                        <input type="number" id="yearInput" min="2000" max="2100">
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button id="analyzeButton" class="button button-primary" disabled>Analyser le planning</button>
+                </div>
+            </div>
+
+            <!-- Section des résultats -->
+            <div class="card results-section" id="resultsSection" hidden>
+                <h2>Résultats de l'analyse</h2>
+                
+                <!-- Indicateur de chargement -->
+                <div class="loader" id="loadingIndicator" hidden>
+                    <div class="spinner"></div>
+                    <p>Analyse en cours...</p>
+                </div>
+                
+                <div id="resultsContent">
+                    <div class="results-header">
+                        <h3>Planning pour <span id="personNamesList"></span></h3>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Jour</th>
+                                    <th>Code</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultsTableBody">
+                                <!-- Les résultats seront insérés ici -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="export-buttons">
+                        <button id="exportIcsButton" class="button">Exporter en ICS</button>
+                        <button id="exportJsonButton" class="button">Exporter en JSON</button>
+                        <button id="copyButton" class="button">Copier vers le presse-papier</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-nav">
+            <a href="index.html" class="nav-link active">Accueil</a>
+            <a href="settings.html" class="nav-link">Paramètres</a>
+        </div>
+        <p>&copy; 2025 Calendrier Leo - Tous droits réservés</p>
+    </footer>
+
+    <!-- Toast pour les notifications -->
+    <div class="toast" id="toastContainer" hidden>
+        <p id="toastMessage"></p>
+    </div>
+
+    <script src="js/app.js?v=2"></script>
+    <script src="js/mistral-api.js?v=2"></script>
+    <script src="js/calendar-utils.js?v=2"></script>
+    <script>
+        // Enregistrer le service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker enregistré avec succès:', registration);
+                        
+                        // Vérifier si une mise à jour est disponible
+                        registration.addEventListener('updatefound', () => {
+                            console.log('Nouvelle version du Service Worker trouvée');
+                            
+                            // Forcer l'activation du nouveau service worker
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // Forcer le rechargement de la page pour utiliser le nouveau service worker
+                                    console.log('Nouveau Service Worker installé, rechargement de la page');
+                                    window.location.reload();
+                                }
+                            });
+                        });
+                        
+                        // Forcer l'activation du service worker existant
+                        if (registration.waiting) {
+                            registration.waiting.postMessage({ action: 'skipWaiting' });
+                        }
+                    })
+                    .catch(error => {
+                        console.log('Erreur lors de l\'enregistrement du Service Worker:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
