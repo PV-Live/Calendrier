@@ -1,10 +1,10 @@
 {
-  "name": "Calendrier Leo",
-  "short_name": "CalLeo",
-  "description": "Analyseur de planning avec Mistral OCR",
+  "name": "Calendrier CHAL",
+  "short_name": "Calendrier CHAL",
+  "description": "Convertisseur de Planning en Calendrier ICS",
   "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#4285f4",
+  "background_color": "#ffffff",
   "theme_color": "#4285f4",
   "orientation": "portrait-primary",
   "icons": [

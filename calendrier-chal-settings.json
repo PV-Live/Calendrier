@@ -1,0 +1,69 @@
+{
+  "codes": {
+    "C9E": {
+      "description": "C9E",
+      "startTime": "08:30",
+      "endTime": "18:00",
+      "color": "#ff7b24"
+    },
+    "FH": {
+      "description": "Formation en heures",
+      "startTime": "09:00",
+      "endTime": "17:00",
+      "color": "#3e9c1c"
+    },
+    "J2B": {
+      "description": "J2B",
+      "startTime": "09:00",
+      "endTime": "17:00",
+      "color": "#f4ed1f"
+    },
+    "J9B": {
+      "description": "J9B",
+      "startTime": "09:00",
+      "endTime": "15:30",
+      "color": "#f1f443"
+    },
+    "JPX": {
+      "description": "JPX",
+      "startTime": "07:15",
+      "endTime": "19:30",
+      "color": "#fbff00"
+    },
+    "M7M": {
+      "description": "M7M",
+      "startTime": "07:45",
+      "endTime": "15:15",
+      "color": "#e7ea34"
+    },
+    "N7H": {
+      "description": "Nuit 7heure",
+      "startTime": "19:15",
+      "endTime": "07:30",
+      "color": "#1f71f4"
+    },
+    "RH": {
+      "description": "repos Hebdomadaire",
+      "startTime": "09:00",
+      "endTime": "17:00",
+      "color": "#f143f4"
+    },
+    "RC": {
+      "description": "Repos copensatoire",
+      "startTime": "09:00",
+      "endTime": "17:00",
+      "color": "#f143f4"
+    },
+    "M7E": {
+      "description": "M7E",
+      "startTime": "07:30",
+      "endTime": "15:00",
+      "color": "#f4ee43"
+    }
+  },
+  "apiSettings": {
+    "model": "mistral-ocr-latest",
+    "strictMode": true
+  },
+  "exportDate": "2025-03-28T15:20:19.908Z"
+}

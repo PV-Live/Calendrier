@@ -1,5 +1,5 @@
 /**
- * Calendrier Leo - Application principale
+ * Calendrier CHAL - Application principale
  * Gère l'interface utilisateur et les interactions
  */
 
@@ -832,7 +832,7 @@ function exportToICS() {
         let icsContent = [
             "BEGIN:VCALENDAR",
             "VERSION:2.0",
-            "PRODID:-//Calendrier Leo//FR",
+            "PRODID:-//Calendrier CHAL//FR",
             "CALSCALE:GREGORIAN",
             "METHOD:PUBLISH",
             `X-WR-CALNAME:Planning ${personName} - ${month}/${year}`
@@ -896,7 +896,7 @@ function exportToICS() {
             // Ajouter l'événement au calendrier
             icsContent = icsContent.concat([
                 "BEGIN:VEVENT",
-                `UID:${Date.now()}-${day}-${code}@calendrier-leo.app`,
+                `UID:${Date.now()}-${day}-${code}@calendrier-chal.app`,
                 `DTSTAMP:${formatDate(new Date())}`,
                 `DTSTART:${formatDate(startDate)}`,
                 `DTEND:${formatDate(endDate)}`,
@@ -1241,7 +1241,7 @@ function loadCodesFromSettings() {
 // Charge les codes depuis le fichier JSON
 async function loadCodesFromJsonFile() {
     try {
-        const response = await fetch('calendrier-leo-settings.json');
+        const response = await fetch('calendrier-chal-settings.json');
         if (!response.ok) {
             throw new Error('Fichier de paramètres non trouvé');
         }
@@ -1397,7 +1397,7 @@ function initApp() {
  * Charge le fichier de paramètres sans écraser les paramètres API existants
  */
 function loadSettingsFile() {
-    fetch('calendrier-leo-settings.json')
+    fetch('calendrier-chal-settings.json')
         .then(response => {
             if (!response.ok) {
                 throw new Error('Fichier de paramètres non trouvé');
