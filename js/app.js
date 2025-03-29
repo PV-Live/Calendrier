@@ -327,125 +327,87 @@ function updateFormState() {
  * @returns {Object} - Les résultats de l'analyse
  */
 async function analyzeOcrTextForPerson(ocrText, personName, month, year) {
-    console.log("Analyse du texte OCR pour", personName);
+    console.log(`Analyse du texte OCR pour ${personName}`);
     
     // Normaliser le nom pour la recherche
-    const normalizedName = personName.toUpperCase().trim();
-    console.log("Nom normalisé:", normalizedName);
+    const normalizedName = personName.toUpperCase();
+    console.log(`Nom normalisé: ${normalizedName}`);
     
-    // Si le texte OCR est vide, retourner un résultat vide
-    if (!ocrText || ocrText.trim() === '') {
-        console.log("Texte OCR vide");
-        return { found: false, name: normalizedName, codes: [], rawText: ocrText };
-    }
+    // Nettoyer le texte OCR
+    const cleanedText = cleanOcrText(ocrText);
     
-    // Prétraitement du texte OCR pour améliorer la détection
-    ocrText = cleanOcrText(ocrText);
+    // Tableau pour stocker les codes trouvés
+    const codes = [];
     
-    // Détecter si le texte est au format tableau Markdown
-    const isMarkdownTable = ocrText.includes('|') && ocrText.includes('\n');
-    console.log(isMarkdownTable ? "Format tableau Markdown détecté" : "Format texte brut détecté");
-    
-    let codes = [];
-    let foundName = '';
+    // Indicateur si la personne a été trouvée
     let found = false;
     
-    // Traiter le texte selon son format
-    if (isMarkdownTable) {
+    // Déterminer le format du texte OCR
+    if (cleanedText.includes('|') && cleanedText.includes('\n')) {
+        // Format de tableau (markdown ou autre)
+        console.log("Format tableau détecté");
+        
         // Diviser le texte en lignes
-        const lines = ocrText.split('\n').filter(line => line.trim() !== '');
+        const lines = cleanedText.split('\n');
         
-        // Si le tableau a une ligne d'en-tête et une ligne de séparation, commencer à la ligne 2
-        const startLine = lines.length > 2 && lines[1].includes('---') ? 2 : 0;
-        
-        if (lines.length <= startLine) {
-            console.log("Tableau trop court, impossible de trouver des codes");
-            return { found: false, name: normalizedName, codes: [], rawText: ocrText };
-        }
-        
-        // Si le tableau a plusieurs lignes, traiter normalement
-        if (lines.length > startLine + 1) {
-            console.log("Tableau avec plusieurs lignes détecté, traitement normal");
+        // Rechercher la ligne contenant le nom de la personne
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
             
-            // Chercher la ligne qui contient le nom de la personne
-            let matchedLine = -1;
-            let bestMatchScore = 0;
-            let bestMatchName = '';
-            
-            for (let i = startLine; i < lines.length; i++) {
-                const line = lines[i];
+            // Vérifier si la ligne contient le nom de la personne
+            if (line.toUpperCase().includes(normalizedName)) {
+                console.log(`Ligne trouvée pour ${normalizedName}: ${line}`);
+                found = true;
+                
+                // Diviser la ligne en cellules
                 const cells = line.split('|').map(cell => cell.trim());
                 
-                if (cells.length > 1) {
-                    const nameInCell = cells[1].trim();
-                    
-                    // Calculer la similarité entre le nom recherché et le nom dans la cellule
-                    const similarity = calculateStringSimilarity(normalizedName, nameInCell.toUpperCase());
-                    console.log(`Ligne ${i}: Similarité entre "${normalizedName}" et "${nameInCell}": ${similarity}`);
-                    
-                    // Si la similarité est supérieure à un seuil et meilleure que les précédentes
-                    // Réduire le seuil à 0.2 pour être plus permissif
-                    if (similarity > 0.2 && similarity > bestMatchScore) {
-                        bestMatchScore = similarity;
-                        bestMatchName = nameInCell;
-                        matchedLine = i;
-                    }
-                }
-            }
-            
-            // Si une correspondance a été trouvée
-            if (matchedLine !== -1) {
-                console.log(`Correspondance trouvée à la ligne ${matchedLine}: "${bestMatchName}" pour "${normalizedName}"`);
-                
-                // Extraire les codes de la ligne
-                const cells = lines[matchedLine].split('|').map(cell => cell.trim());
-                
-                // Le premier élément est vide (avant le premier |) et le second est le nom
-                // Les codes commencent à partir du troisième élément (index 2)
-                for (let i = 2; i < cells.length; i++) {
-                    const code = cells[i].trim();
-                    if (code && code !== '') {
-                        codes.push(code);
-                    } else {
-                        // Si la cellule est vide, ajouter un code par défaut (RHE)
-                        codes.push('RHE');
-                    }
-                }
-                
-                found = true;
-                foundName = bestMatchName;
-            } else {
-                // Si aucune correspondance n'a été trouvée, essayer de traiter l'image directement
-                console.log("Aucune correspondance trouvée dans le tableau, tentative de traitement direct de l'image");
-                
-                // Vérifier si nous avons une ligne avec au moins 20 cellules (potentiellement des codes)
-                for (let i = startLine; i < lines.length; i++) {
-                    const line = lines[i];
-                    const cells = line.split('|').map(cell => cell.trim());
-                    
-                    if (cells.length >= 20) {
-                        console.log(`Ligne ${i} contient ${cells.length} cellules, possible ligne de codes`);
-                        
-                        // Extraire les codes de la ligne
-                        for (let j = 1; j < cells.length; j++) {
-                            const code = cells[j].trim();
-                            if (code && code !== '') {
-                                codes.push(code);
-                            }
-                        }
-                        
-                        if (codes.length > 0) {
-                            console.log(`${codes.length} codes extraits directement de la ligne ${i}`);
-                            found = true;
-                            foundName = normalizedName;
-                            break;
+                // Ignorer la première cellule (nom) et parcourir les autres cellules
+                for (let j = 1; j < cells.length; j++) {
+                    const cell = cells[j];
+                    if (cell && cell !== '') {
+                        // Vérifier si le code est valide
+                        if (isValidCode(cell)) {
+                            codes.push(cell);
                         }
                     }
                 }
+                
+                console.log(`Codes extraits pour ${normalizedName}: ${codes.join(', ')}`);
+                break;
             }
         }
     } else {
-        // Traitement pour le texte brut (non implémenté pour l'instant)
+        // Format texte brut
+        console.log("Format texte brut détecté");
+        
+        // Essayer d'extraire les codes à partir du texte brut
+        try {
+            // Rechercher le nom dans le texte
+            const nameIndex = cleanedText.toUpperCase().indexOf(normalizedName);
+            if (nameIndex !== -1) {
+                found = true;
+                
+                // Extraire le texte après le nom
+                const textAfterName = cleanedText.substring(nameIndex + normalizedName.length);
+                
+                // Rechercher des motifs de code (2-4 caractères alphanumériques)
+                const codeRegex = /\b[A-Z0-9]{2,4}\b/g;
+                const potentialCodes = textAfterName.match(codeRegex) || [];
+                
+                // Filtrer les codes valides
+                for (const code of potentialCodes) {
+                    if (isValidCode(code)) {
+                        codes.push(code);
+                    }
+                }
+                
+                console.log(`Codes extraits pour ${normalizedName} (texte brut): ${codes.join(', ')}`);
+            }
+        } catch (error) {
+            console.error("Erreur lors de l'extraction des codes en texte brut:", error);
+        }
+        
         console.log("Format texte brut non pris en charge pour le moment");
     }
     
@@ -454,29 +416,28 @@ async function analyzeOcrTextForPerson(ocrText, personName, month, year) {
     // Compléter les codes manquants pour atteindre le nombre de jours du mois
     const daysInMonth = new Date(year, month, 0).getDate();
     
-    // Si nous avons moins de codes que de jours dans le mois, compléter avec des codes par défaut
+    // Si nous avons moins de codes que de jours dans le mois, compléter avec des codes vides
     if (codes.length < daysInMonth) {
         console.log(`Complétion des codes manquants (${codes.length} -> ${daysInMonth})`);
-        const defaultCode = 'RHE'; // Code par défaut
         while (codes.length < daysInMonth) {
-            codes.push(defaultCode);
+            codes.push(''); // Code vide au lieu d'un code par défaut
         }
     } else if (codes.length > daysInMonth) {
         // Si nous avons plus de codes que de jours dans le mois, tronquer
         console.log(`Troncature des codes excédentaires (${codes.length} -> ${daysInMonth})`);
-        codes = codes.slice(0, daysInMonth);
+        codes.splice(daysInMonth);
     }
     
-    // Si aucun code n'a été trouvé, générer des codes de démonstration
+    // Si aucun code n'a été trouvé, retourner un tableau de codes vides
     if (!found || codes.length === 0) {
-        console.log("Aucun code trouvé, génération de codes de démonstration");
-        const demoCodes = generateDemoCodes(daysInMonth);
-        console.log(`${demoCodes.length} codes générés pour la démonstration`);
+        console.log("Aucun code trouvé, création d'un tableau de codes vides");
+        const emptyCodes = Array(daysInMonth).fill('');
+        console.log(`${emptyCodes.length} codes vides créés`);
         
         return {
             found: false,
             name: normalizedName,
-            codes: demoCodes,
+            codes: emptyCodes,
             rawText: ocrText,
             month: month
         };
@@ -484,9 +445,10 @@ async function analyzeOcrTextForPerson(ocrText, personName, month, year) {
     
     return {
         found: true,
-        name: foundName || normalizedName,
+        name: normalizedName,
         codes: codes,
-        rawText: ocrText
+        rawText: ocrText,
+        month: month
     };
 }
 
@@ -752,7 +714,11 @@ function createCodeLegend() {
             colorBox.style.backgroundColor = getCodeColor(code) || '#ccc';
             
             const text = document.createElement('span');
-            text.textContent = `${code}: ${getCodeDescription(code) || 'Code'}`;
+            const description = getCodeDescription(code) || 'Code';
+            const hours = getCodeHours(code) || 'Toute la journée';
+            
+            // Inclure les horaires dans la légende
+            text.textContent = `${code}: ${description} (${hours})`;
             
             item.appendChild(colorBox);
             item.appendChild(text);
@@ -823,29 +789,50 @@ function getCodeDescription(code) {
 }
 
 /**
- * Exporte les résultats au format ICS
+ * Exporte les résultats au format ICS (iCalendar)
  */
 function exportToICS() {
-    console.log("Exportation au format ICS...");
-    
     // Vérifier si des résultats sont disponibles
     if (!appState.results || !appState.results.codes || appState.results.codes.length === 0) {
         showToast("Aucun résultat à exporter", "error");
         return;
     }
     
+    // Récupérer les informations
+    const personName = appState.results.name || 'Inconnu';
+    
+    // Récupérer les codes depuis l'interface utilisateur
+    const codes = [];
+    const codeSelects = document.querySelectorAll('.code-select');
+    
+    // Si nous avons des sélecteurs de code dans l'interface
+    if (codeSelects && codeSelects.length > 0) {
+        // Pour chaque jour du mois
+        for (let i = 0; i < appState.results.codes.length; i++) {
+            // Si le sélecteur existe pour ce jour
+            if (codeSelects[i]) {
+                codes.push(codeSelects[i].value);
+            } else {
+                // Sinon, utiliser le code original
+                codes.push(appState.results.codes[i]);
+            }
+        }
+        console.log("Codes récupérés pour l'exportation ICS:", codes);
+    } else {
+        // Fallback sur les codes stockés dans appState si l'interface n'est pas disponible
+        codes.push(...appState.results.codes);
+        console.log("Codes récupérés depuis appState pour l'exportation ICS:", codes);
+    }
+    
+    const month = appState.month || new Date().getMonth() + 1;
+    const year = appState.year || new Date().getFullYear();
+    
     try {
-        // Récupérer les informations nécessaires
-        const personName = appState.results.personName || appState.personName || "Inconnu";
-        const month = appState.results.month || appState.month || new Date().getMonth() + 1;
-        const year = appState.results.year || appState.year || new Date().getFullYear();
-        const codes = appState.results.codes;
-        
-        // Créer le contenu ICS
+        // Créer le contenu du fichier ICS
         let icsContent = [
             "BEGIN:VCALENDAR",
             "VERSION:2.0",
-            "PRODID:-//Calendrier Leo//Planning Export//FR",
+            "PRODID:-//Calendrier Leo//FR",
             "CALSCALE:GREGORIAN",
             "METHOD:PUBLISH",
             `X-WR-CALNAME:Planning ${personName} - ${month}/${year}`
@@ -857,18 +844,54 @@ function exportToICS() {
             const code = codeInfo;
             const day = index + 1;
             
+            // Récupérer les horaires du code
+            let startTime = "00:00";
+            let endTime = "23:59";
+            let isAllDay = true;
+            
+            if (appState.codesData && appState.codesData[code]) {
+                if (appState.codesData[code].startTime && appState.codesData[code].endTime) {
+                    startTime = appState.codesData[code].startTime;
+                    endTime = appState.codesData[code].endTime;
+                    isAllDay = false;
+                } else if (appState.codesData[code].startTime) {
+                    startTime = appState.codesData[code].startTime;
+                    isAllDay = false;
+                } else if (appState.codesData[code].endTime) {
+                    endTime = appState.codesData[code].endTime;
+                    isAllDay = false;
+                }
+            }
+            
             // Créer la date de début et de fin
             const startDate = new Date(year, month - 1, day);
             const endDate = new Date(year, month - 1, day);
-            endDate.setDate(endDate.getDate() + 1); // Fin = jour suivant à minuit
+            
+            // Si des horaires sont définis, les utiliser
+            if (!isAllDay) {
+                const [startHour, startMinute] = startTime.split(':').map(Number);
+                const [endHour, endMinute] = endTime.split(':').map(Number);
+                
+                startDate.setHours(startHour, startMinute, 0, 0);
+                endDate.setHours(endHour, endMinute, 0, 0);
+                
+                // Si l'heure de fin est avant l'heure de début, on suppose que c'est le jour suivant
+                if (endDate < startDate) {
+                    endDate.setDate(endDate.getDate() + 1);
+                }
+            } else {
+                // Événement toute la journée
+                endDate.setDate(endDate.getDate() + 1); // Fin = jour suivant à minuit
+            }
             
             // Formater les dates pour ICS (format: YYYYMMDDTHHMMSSZ)
             const formatDate = (date) => {
                 return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
             };
             
-            // Récupérer la description du code
+            // Récupérer la description et les horaires du code
             const description = getCodeDescription(code) || `Code: ${code}`;
+            const hours = getCodeHours(code) || 'Toute la journée';
             
             // Ajouter l'événement au calendrier
             icsContent = icsContent.concat([
@@ -878,7 +901,7 @@ function exportToICS() {
                 `DTSTART:${formatDate(startDate)}`,
                 `DTEND:${formatDate(endDate)}`,
                 `SUMMARY:${code} - ${personName}`,
-                `DESCRIPTION:${description}`,
+                `DESCRIPTION:${description}\\nHoraires: ${hours}`,
                 "END:VEVENT"
             ]);
         });
@@ -904,15 +927,7 @@ function exportToICS() {
         showToast("Exportation ICS réussie", "success");
     } catch (error) {
         console.error("Erreur lors de l'exportation ICS:", error);
-        
-        // Mettre à jour l'état de l'application
-        appState.isAnalyzing = false;
-        
-        // Afficher un message d'erreur
-        showToast(`Erreur lors de l'exportation: ${error.message}`, "error");
-        
-        // Masquer l'indicateur de chargement
-        elements.loadingIndicator.hidden = true;
+        showToast("Erreur lors de l'exportation ICS", "error");
     }
 }
 
@@ -1120,28 +1135,6 @@ function showToast(message, type = 'info') {
 }
 
 /**
- * Génère des codes de démonstration
- * 
- * @param {number} count - Nombre de codes à générer
- * @returns {Array<string>} - Tableau de codes générés
- */
-function generateDemoCodes(count = 10) {
-    console.log(`Génération de ${count} codes de démonstration`);
-    
-    // Liste de codes valides pour la démonstration
-    const demoCodes = ['RH', 'J8D', 'M7M', 'C9E', 'JPY', 'JPC', 'SFC', 'NZH', 'RC'];
-    
-    // Générer des codes aléatoires
-    const codes = [];
-    for (let i = 0; i < count; i++) {
-        const randomIndex = Math.floor(Math.random() * demoCodes.length);
-        codes.push(demoCodes[randomIndex]);
-    }
-    
-    return codes;
-}
-
-/**
  * Calcule la similarité entre deux chaînes
  * 
  * @param {string} str1 - Première chaîne
@@ -1202,9 +1195,8 @@ function levenshteinDistance(str1, str2) {
 
 /**
  * Vérifie si une chaîne est un code valide
- * 
  * @param {string} str - Chaîne à vérifier
- * @returns {boolean} - true si la chaîne est un code valide
+ * @returns {boolean} - True si la chaîne est un code valide
  */
 function isValidCode(str) {
     if (!str) return false;
@@ -1212,13 +1204,17 @@ function isValidCode(str) {
     // Normaliser la chaîne
     str = str.trim().toUpperCase();
     
-    // Vérifier si c'est un code connu
-    if (window.VALID_CODES && window.VALID_CODES.includes(str)) {
+    // Vérifier si c'est un code connu dans les codes valides de l'application
+    if (appState.validCodes && appState.validCodes.includes(str)) {
         return true;
     }
     
-    // Vérifier les formats de code courants
-    return /^(RH|RHE|[A-Z][0-9][A-Z]|[A-Z][0-9][0-9]|[A-Z][A-Z][A-Z]|[A-Z][A-Z][0-9])$/.test(str);
+    // Si aucun code valide n'est défini, accepter tous les codes non vides
+    if (!appState.validCodes || appState.validCodes.length === 0) {
+        return str.length > 0;
+    }
+    
+    return false;
 }
 
 // Charge les codes valides depuis le fichier de paramètres
