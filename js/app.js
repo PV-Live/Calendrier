@@ -64,7 +64,8 @@ function initElements() {
         // Autres éléments
         loadingIndicator: document.getElementById('loadingIndicator'),
         toastContainer: document.getElementById('toastContainer'),
-        toastMessage: document.getElementById('toastMessage')
+        toastMessage: document.getElementById('toastMessage'),
+        codeLegendContainer: document.getElementById('codeLegendContainer')
     };
     
     console.log("Éléments DOM initialisés");
@@ -1287,177 +1288,324 @@ function saveCodesInAppSettings(codes) {
 // Retourne les codes par défaut
 function getDefaultCodes() {
     return {
-        "C9E": {
-            "description": "C9E",
-            "startTime": "08:30",
-            "endTime": "18:00",
-            "color": "#ff7b24"
-        },
-        "FH": {
-            "description": "Formation en heures",
+        "JT": {
+            "description": "Journée Travaillée",
             "startTime": "09:00",
             "endTime": "17:00",
-            "color": "#3e9c1c"
+            "color": "#4285f4"
         },
-        "J2B": {
-            "description": "J2B",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#f4ed1f"
+        "CA": {
+            "description": "Congé Annuel",
+            "startTime": "00:00",
+            "endTime": "23:59",
+            "color": "#0f9d58"
         },
-        "J9B": {
-            "description": "J9B",
-            "startTime": "09:00",
-            "endTime": "15:30",
-            "color": "#f1f443"
-        },
-        "JPX": {
-            "description": "JPX",
-            "startTime": "07:15",
-            "endTime": "19:30",
-            "color": "#fbff00"
-        },
-        "M7M": {
-            "description": "M7M",
-            "startTime": "07:45",
-            "endTime": "15:15",
-            "color": "#e7ea34"
-        },
-        "N7H": {
-            "description": "Nuit 7heure",
-            "startTime": "19:15",
-            "endTime": "07:30",
-            "color": "#1f71f4"
+        "FE": {
+            "description": "Férié",
+            "startTime": "00:00",
+            "endTime": "23:59",
+            "color": "#db4437"
         },
         "RH": {
-            "description": "repos Hebdomadaire",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#f143f4"
-        },
-        "RC": {
-            "description": "Repos copensatoire",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#f143f4"
-        },
-        "M7E": {
-            "description": "M7E",
-            "startTime": "07:30",
-            "endTime": "15:00",
-            "color": "#f4ee43"
+            "description": "Repos Hebdomadaire",
+            "startTime": "00:00",
+            "endTime": "23:59",
+            "color": "#f4b400"
         }
     };
 }
 
+// Charge les codes depuis le stockage local
+async function loadCodes() {
+    try {
+        // Essayer de charger les codes depuis appSettings
+        const appSettingsJson = localStorage.getItem('appSettings');
+        if (appSettingsJson) {
+            const appSettings = JSON.parse(appSettingsJson);
+            if (appSettings && appSettings.codes && Object.keys(appSettings.codes).length > 0) {
+                console.log("Codes chargés depuis appSettings:", Object.keys(appSettings.codes));
+                appState.codesData = appSettings.codes;
+                appState.validCodes = Object.keys(appSettings.codes);
+                return appSettings.codes;
+            }
+        }
+        
+        // Si aucun code n'est trouvé dans appSettings, essayer de charger depuis le fichier JSON
+        const codes = await loadCodesFromJsonFile();
+        appState.codesData = codes;
+        appState.validCodes = Object.keys(codes);
+        return codes;
+    } catch (error) {
+        console.error("Erreur lors du chargement des codes:", error);
+        const defaultCodes = getDefaultCodes();
+        appState.codesData = defaultCodes;
+        appState.validCodes = Object.keys(defaultCodes);
+        return defaultCodes;
+    }
+}
+
+/**
+ * Met à jour toutes les listes déroulantes de codes
+ */
+function updateCodeDropdowns() {
+    const codeSelects = document.querySelectorAll('.code-select');
+    if (codeSelects && codeSelects.length > 0) {
+        codeSelects.forEach(select => {
+            const selectedValue = select.value;
+            select.innerHTML = '';
+            
+            // Ajouter chaque code valide comme option
+            appState.validCodes.forEach(validCode => {
+                const option = document.createElement('option');
+                option.value = validCode;
+                option.textContent = validCode;
+                
+                // Sélectionner le code actuel si possible
+                if (validCode === selectedValue) {
+                    option.selected = true;
+                }
+                
+                select.appendChild(option);
+            });
+        });
+    }
+}
+
 // Initialise l'application
-function initApp() {
-    console.log("DOM chargé, initialisation de l'application...");
+async function initApp() {
+    console.log("Initialisation de l'application");
     
     // Initialiser les éléments DOM
-    console.log("Initialisation des éléments DOM");
     initElements();
     console.log("Éléments DOM initialisés");
     
     // Initialiser l'état de l'application
-    console.log("Initialisation de l'état de l'application");
     initAppState();
+    console.log("État de l'application initialisé");
+    
+    // Mettre à jour l'état du formulaire
+    updateFormState();
     
     // Initialiser les gestionnaires d'événements
-    console.log("Initialisation des gestionnaires d'événements");
     initEventListeners();
     console.log("Gestionnaires d'événements initialisés");
     
-    // Charger les paramètres de l'API
-    const apiSettings = loadApiSettings();
-    console.log("Paramètres API chargés:", {
-        apiKey: apiSettings.apiKey ? apiSettings.apiKey.substring(0, 10) + '...' : 'non définie',
-        model: apiSettings.model,
-        strictMode: apiSettings.strictMode
-    });
+    // Charger les paramètres API
+    await loadApiSettings();
+    console.log("Paramètres API chargés:", appState.apiSettings);
     
-    // Charger les codes valides
-    appState.codesData = loadCodesFromSettings();
+    // Charger les codes
+    await loadCodes();
     console.log("Données des codes chargées:", appState.codesData);
-    
-    // Générer la liste des codes valides
-    appState.validCodes = Object.keys(appState.codesData);
     console.log(`${appState.validCodes.length} codes valides chargés:`, appState.validCodes);
     
     // Créer la légende des codes
-    createCodeLegend();
+    if (elements.codeLegendContainer) {
+        elements.codeLegendContainer.innerHTML = '';
+        const codeLegend = createCodeLegend();
+        elements.codeLegendContainer.appendChild(codeLegend);
+        console.log("Légende des codes créée");
+    }
     
-    // Charger le fichier de paramètres (mais ne pas écraser les paramètres API existants)
-    loadSettingsFile();
+    // Mettre à jour les listes déroulantes de codes
+    updateCodeDropdowns();
+    console.log("Listes déroulantes de codes mises à jour");
+    
+    // Écouter les événements de mise à jour des codes depuis la page des paramètres
+    document.addEventListener('codesUpdated', handleCodesUpdated);
     
     console.log("Application initialisée avec succès");
+    
+    // Charger le fichier de paramètres
+    loadSettingsFile();
 }
 
 /**
- * Charge le fichier de paramètres sans écraser les paramètres API existants
+ * Gère les mises à jour des codes depuis la page des paramètres
+ * @param {CustomEvent} event - L'événement personnalisé
  */
-function loadSettingsFile() {
-    fetch('calendrier-chal-settings.json')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Fichier de paramètres non trouvé');
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Fichier de paramètres chargé:", data);
-            
-            // Mettre à jour les codes
-            if (data.codes) {
-                // Sauvegarder les codes dans appSettings sans écraser les paramètres API
-                let appSettings = {};
-                const appSettingsJson = localStorage.getItem('appSettings');
-                if (appSettingsJson) {
-                    try {
-                        appSettings = JSON.parse(appSettingsJson);
-                    } catch (error) {
-                        console.error('Erreur lors du chargement de appSettings:', error);
-                    }
+async function handleCodesUpdated(event) {
+    console.log("Mise à jour des codes détectée:", event.detail);
+    
+    // Recharger les codes
+    await loadCodes();
+    
+    // Mettre à jour la légende des codes
+    if (elements.codeLegendContainer) {
+        elements.codeLegendContainer.innerHTML = '';
+        const codeLegend = createCodeLegend();
+        elements.codeLegendContainer.appendChild(codeLegend);
+    }
+    
+    // Mettre à jour les listes déroulantes de codes
+    updateCodeDropdowns();
+    
+    console.log("Codes mis à jour avec succès");
+}
+
+/**
+ * Analyse le planning pour le nom sélectionné
+ * @async
+ */
+async function analyzeSchedule() {
+    console.log("Analyse du planning...");
+    
+    // Vérifier si un fichier a été chargé
+    if (!appState.imageFile) {
+        showToast("Veuillez d'abord charger une image", "error");
+        return;
+    }
+    
+    // Vérifier si un nom a été saisi
+    let personName = '';
+    
+    if (elements.personNameInput && elements.personNameInput.value.trim()) {
+        personName = elements.personNameInput.value.trim();
+    }
+    
+    if (!personName) {
+        showToast("Veuillez saisir un nom", "error");
+        return;
+    }
+    
+    // Récupérer le mois et l'année
+    const month = parseInt(elements.monthSelect.value);
+    const year = parseInt(elements.yearInput.value);
+    
+    if (isNaN(month) || isNaN(year)) {
+        showToast("Veuillez saisir un mois et une année valides", "error");
+        return;
+    }
+    
+    // Mettre à jour l'état de l'application
+    appState.personName = personName;
+    appState.month = month;
+    appState.year = year;
+    appState.isAnalyzing = true;
+    
+    // Afficher l'indicateur de chargement
+    if (elements.loadingIndicator) {
+        elements.loadingIndicator.hidden = false;
+    }
+    
+    if (elements.resultsContent) {
+        elements.resultsContent.hidden = true;
+    }
+    
+    if (elements.resultsSection) {
+        elements.resultsSection.hidden = false;
+    }
+    
+    try {
+        // Charger les paramètres de l'API directement depuis appSettings
+        const appSettingsJson = localStorage.getItem('appSettings');
+        let apiKey = '';
+        let model = 'mistral-ocr-latest';
+        let strictMode = true;
+        
+        if (appSettingsJson) {
+            try {
+                const appSettings = JSON.parse(appSettingsJson);
+                if (appSettings && appSettings.apiSettings) {
+                    apiKey = appSettings.apiSettings.apiKey || '';
+                    model = appSettings.apiSettings.model || 'mistral-ocr-latest';
+                    strictMode = appSettings.apiSettings.strictMode !== false;
+                    
+                    console.log("Paramètres API chargés pour l'analyse:", {
+                        hasApiKey: !!apiKey,
+                        model: model,
+                        strictMode: strictMode
+                    });
                 }
-                
-                // Mettre à jour uniquement les codes, pas les paramètres API
-                appSettings.codes = data.codes;
-                
-                // Sauvegarder
-                localStorage.setItem('appSettings', JSON.stringify(appSettings));
-                console.log(`${Object.keys(data.codes).length} codes mis à jour depuis le fichier de paramètres`);
-                
-                // Mettre à jour les codes dans l'application
-                appState.codesData = data.codes;
-                appState.validCodes = Object.keys(data.codes);
-                
-                // Mettre à jour la légende des codes
-                createCodeLegend();
+            } catch (error) {
+                console.error('Erreur lors du chargement des paramètres API depuis appSettings:', error);
+            }
+        }
+        
+        // Si aucune clé API n'est trouvée, essayer les méthodes de secours
+        if (!apiKey) {
+            // Essayer de charger depuis apiSettings (ancienne méthode)
+            const savedSettings = localStorage.getItem('apiSettings');
+            if (savedSettings) {
+                try {
+                    const parsedSettings = JSON.parse(savedSettings);
+                    apiKey = parsedSettings.apiKey || '';
+                    
+                    if (apiKey) {
+                        console.log("Clé API chargée depuis apiSettings (ancienne méthode)");
+                    }
+                } catch (error) {
+                    console.error('Erreur lors du chargement de la clé API:', error);
+                }
             }
             
-            // Ne pas écraser les paramètres API existants si une clé API est déjà configurée
-            if (data.apiSettings) {
-                const appSettingsJson = localStorage.getItem('appSettings');
-                if (appSettingsJson) {
-                    try {
-                        const appSettings = JSON.parse(appSettingsJson);
-                        if (appSettings && appSettings.apiSettings && appSettings.apiSettings.apiKey) {
-                            console.log("Paramètres API existants conservés (clé API déjà configurée)");
-                            return;
-                        }
-                    } catch (error) {
-                        console.error('Erreur lors du chargement de appSettings:', error);
-                    }
+            // Essayer de charger depuis mistralApiKey (ancienne méthode)
+            if (!apiKey) {
+                const directApiKey = localStorage.getItem('mistralApiKey');
+                if (directApiKey) {
+                    apiKey = directApiKey;
+                    console.log("Clé API chargée depuis le stockage direct (ancienne méthode)");
                 }
-                
-                // Si aucune clé API n'est configurée, utiliser celle du fichier de paramètres
-                saveApiSettings(data.apiSettings);
-                console.log("Paramètres API mis à jour depuis le fichier de paramètres");
             }
-        })
-        .catch(error => {
-            console.warn("Erreur lors du chargement du fichier de paramètres:", error);
-        });
+            
+            // Si une clé API a été trouvée par les méthodes de secours, la sauvegarder dans appSettings
+            if (apiKey) {
+                saveApiSettings({
+                    apiKey: apiKey,
+                    model: model,
+                    strictMode: strictMode
+                });
+            }
+        }
+        
+        // Analyser l'image avec Mistral OCR
+        console.log("Analyse de l'image avec Mistral OCR...");
+        console.log("Utilisation de la clé API:", apiKey ? "Présente" : "Absente");
+        const ocrResult = await analyzeImageWithMistralOCR(appState.imageFile, apiKey);
+        
+        if (!ocrResult || !ocrResult.success) {
+            throw new Error(ocrResult?.error || "Erreur lors de l'analyse OCR");
+        }
+        
+        console.log("Résultat OCR obtenu:", ocrResult);
+        
+        // Analyser le texte OCR pour la personne spécifique
+        console.log(`Analyse du texte OCR pour ${personName}...`);
+        const result = await analyzeOcrTextForPerson(ocrResult.ocrText, personName, month, year);
+        
+        // Mettre à jour l'état de l'application
+        appState.results = result;
+        appState.isAnalyzing = false;
+        
+        // S'assurer que le loader est masqué avant d'afficher les résultats
+        if (elements.loadingIndicator) {
+            elements.loadingIndicator.hidden = true;
+        }
+        
+        // Afficher les résultats
+        displayResults(result);
+        
+        console.log("Analyse terminée avec succès");
+        showToast("Analyse terminée avec succès", "success");
+    } catch (error) {
+        console.error("Erreur lors de l'analyse:", error);
+        
+        // Mettre à jour l'état de l'application
+        appState.isAnalyzing = false;
+        
+        // Afficher un message d'erreur
+        showToast(`Erreur lors de l'analyse`, "error");
+        
+        // Masquer l'indicateur de chargement
+        if (elements.loadingIndicator) {
+            elements.loadingIndicator.hidden = true;
+        }
+    } finally {
+        // S'assurer que le loader est toujours masqué, quoi qu'il arrive
+        if (elements.loadingIndicator) {
+            elements.loadingIndicator.hidden = true;
+        }
+    }
 }
 
 // Initialise l'application
@@ -1623,164 +1771,84 @@ function processManualCodes() {
     showToast('Codes traités avec succès', 'success');
 }
 
-// Analyse le planning pour le nom sélectionné
-async function analyzeSchedule() {
-    console.log("Analyse du planning...");
-    
-    // Vérifier si un fichier a été chargé
-    if (!appState.imageFile) {
-        showToast("Veuillez d'abord charger une image", "error");
-        return;
-    }
-    
-    // Vérifier si un nom a été saisi
-    let personName = '';
-    
-    if (elements.personNameInput && elements.personNameInput.value.trim()) {
-        personName = elements.personNameInput.value.trim();
-    }
-    
-    if (!personName) {
-        showToast("Veuillez saisir un nom", "error");
-        return;
-    }
-    
-    // Récupérer le mois et l'année
-    const month = parseInt(elements.monthSelect.value);
-    const year = parseInt(elements.yearInput.value);
-    
-    if (isNaN(month) || isNaN(year)) {
-        showToast("Veuillez saisir un mois et une année valides", "error");
-        return;
-    }
-    
-    // Mettre à jour l'état de l'application
-    appState.personName = personName;
-    appState.month = month;
-    appState.year = year;
-    appState.isAnalyzing = true;
-    
-    // Afficher l'indicateur de chargement
-    if (elements.loadingIndicator) {
-        elements.loadingIndicator.hidden = false;
-    }
-    
-    if (elements.resultsContent) {
-        elements.resultsContent.hidden = true;
-    }
-    
-    if (elements.resultsSection) {
-        elements.resultsSection.hidden = false;
-    }
-    
-    try {
-        // Charger les paramètres de l'API directement depuis appSettings
-        const appSettingsJson = localStorage.getItem('appSettings');
-        let apiKey = '';
-        let model = 'mistral-ocr-latest';
-        let strictMode = true;
-        
-        if (appSettingsJson) {
-            try {
-                const appSettings = JSON.parse(appSettingsJson);
-                if (appSettings && appSettings.apiSettings) {
-                    apiKey = appSettings.apiSettings.apiKey || '';
-                    model = appSettings.apiSettings.model || 'mistral-ocr-latest';
-                    strictMode = appSettings.apiSettings.strictMode !== false;
-                    
-                    console.log("Paramètres API chargés pour l'analyse:", {
-                        hasApiKey: !!apiKey,
-                        model: model,
-                        strictMode: strictMode
-                    });
-                }
-            } catch (error) {
-                console.error('Erreur lors du chargement des paramètres API depuis appSettings:', error);
+/**
+ * Charge le fichier de paramètres sans écraser les paramètres API existants
+ */
+function loadSettingsFile() {
+    fetch('calendrier-chal-settings.json')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Fichier de paramètres non trouvé');
             }
-        }
-        
-        // Si aucune clé API n'est trouvée, essayer les méthodes de secours
-        if (!apiKey) {
-            // Essayer de charger depuis apiSettings (ancienne méthode)
-            const savedSettings = localStorage.getItem('apiSettings');
-            if (savedSettings) {
+            return response.json();
+        })
+        .then(data => {
+            console.log("Fichier de paramètres chargé:", data);
+            
+            // Vérifier si des codes existent déjà dans le localStorage
+            const appSettingsJson = localStorage.getItem('appSettings');
+            let appSettings = {};
+            let existingCodes = null;
+            
+            if (appSettingsJson) {
                 try {
-                    const parsedSettings = JSON.parse(savedSettings);
-                    apiKey = parsedSettings.apiKey || '';
-                    
-                    if (apiKey) {
-                        console.log("Clé API chargée depuis apiSettings (ancienne méthode)");
+                    appSettings = JSON.parse(appSettingsJson);
+                    if (appSettings && appSettings.codes && Object.keys(appSettings.codes).length > 0) {
+                        existingCodes = appSettings.codes;
+                        console.log("Codes existants trouvés dans localStorage:", Object.keys(existingCodes).length);
                     }
                 } catch (error) {
-                    console.error('Erreur lors du chargement de la clé API:', error);
+                    console.error('Erreur lors du chargement de appSettings:', error);
                 }
             }
             
-            // Essayer de charger depuis mistralApiKey (ancienne méthode)
-            if (!apiKey) {
-                const directApiKey = localStorage.getItem('mistralApiKey');
-                if (directApiKey) {
-                    apiKey = directApiKey;
-                    console.log("Clé API chargée depuis le stockage direct (ancienne méthode)");
+            // Ne mettre à jour les codes que si aucun code n'existe dans le localStorage
+            if (data.codes && !existingCodes) {
+                console.log("Aucun code existant, utilisation des codes du fichier JSON");
+                
+                // Mettre à jour uniquement les codes, pas les paramètres API
+                appSettings.codes = data.codes;
+                
+                // Sauvegarder
+                localStorage.setItem('appSettings', JSON.stringify(appSettings));
+                console.log(`${Object.keys(data.codes).length} codes mis à jour depuis le fichier de paramètres`);
+                
+                // Mettre à jour les codes dans l'application
+                appState.codesData = data.codes;
+                appState.validCodes = Object.keys(data.codes);
+                
+                // Mettre à jour la légende des codes
+                if (elements.codeLegendContainer) {
+                    elements.codeLegendContainer.innerHTML = '';
+                    const codeLegend = createCodeLegend();
+                    elements.codeLegendContainer.appendChild(codeLegend);
                 }
+                
+                // Mettre à jour les listes déroulantes de codes
+                updateCodeDropdowns();
+            } else if (existingCodes) {
+                console.log("Codes existants conservés, ignorant les codes du fichier JSON");
             }
             
-            // Si une clé API a été trouvée par les méthodes de secours, la sauvegarder dans appSettings
-            if (apiKey) {
-                saveApiSettings({
-                    apiKey: apiKey,
-                    model: model,
-                    strictMode: strictMode
-                });
+            // Ne pas écraser les paramètres API existants si une clé API est déjà configurée
+            if (data.apiSettings) {
+                if (appSettingsJson) {
+                    try {
+                        if (appSettings && appSettings.apiSettings && appSettings.apiSettings.apiKey) {
+                            console.log("Paramètres API existants conservés (clé API déjà configurée)");
+                            return;
+                        }
+                    } catch (error) {
+                        console.error('Erreur lors du chargement de appSettings:', error);
+                    }
+                }
+                
+                // Si aucune clé API n'est configurée, utiliser celle du fichier de paramètres
+                saveApiSettings(data.apiSettings);
+                console.log("Paramètres API mis à jour depuis le fichier de paramètres");
             }
-        }
-        
-        // Analyser l'image avec Mistral OCR
-        console.log("Analyse de l'image avec Mistral OCR...");
-        console.log("Utilisation de la clé API:", apiKey ? "Présente" : "Absente");
-        const ocrResult = await analyzeImageWithMistralOCR(appState.imageFile, apiKey);
-        
-        if (!ocrResult || !ocrResult.success) {
-            throw new Error(ocrResult?.error || "Erreur lors de l'analyse OCR");
-        }
-        
-        console.log("Résultat OCR obtenu:", ocrResult);
-        
-        // Analyser le texte OCR pour la personne spécifique
-        console.log(`Analyse du texte OCR pour ${personName}...`);
-        const result = await analyzeOcrTextForPerson(ocrResult.ocrText, personName, month, year);
-        
-        // Mettre à jour l'état de l'application
-        appState.results = result;
-        appState.isAnalyzing = false;
-        
-        // S'assurer que le loader est masqué avant d'afficher les résultats
-        if (elements.loadingIndicator) {
-            elements.loadingIndicator.hidden = true;
-        }
-        
-        // Afficher les résultats
-        displayResults(result);
-        
-        console.log("Analyse terminée avec succès");
-        showToast("Analyse terminée avec succès", "success");
-    } catch (error) {
-        console.error("Erreur lors de l'analyse:", error);
-        
-        // Mettre à jour l'état de l'application
-        appState.isAnalyzing = false;
-        
-        // Afficher un message d'erreur
-        showToast(`Erreur lors de l'analyse`, "error");
-        
-        // Masquer l'indicateur de chargement
-        if (elements.loadingIndicator) {
-            elements.loadingIndicator.hidden = true;
-        }
-    } finally {
-        // S'assurer que le loader est toujours masqué, quoi qu'il arrive
-        if (elements.loadingIndicator) {
-            elements.loadingIndicator.hidden = true;
-        }
-    }
+        })
+        .catch(error => {
+            console.warn("Erreur lors du chargement du fichier de paramètres:", error);
+        });
 }
