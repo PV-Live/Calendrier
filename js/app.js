@@ -744,16 +744,41 @@ function getCodeColor(code) {
     
     // Sinon, utiliser les couleurs par défaut
     const codeColors = {
-        'C9E': '#ff7b24', // Orange
-        'FH': '#3e9c1c',  // Vert foncé
-        'J2B': '#f4ed1f', // Jaune
-        'J9B': '#f1f443', // Jaune clair
-        'JPX': '#fbff00', // Jaune vif
-        'M7M': '#e7ea34', // Jaune-vert
-        'N7H': '#1f71f4', // Bleu
-        'RH': '#f143f4',  // Rose
-        'RC': '#f143f4',  // Rose
-        'M7E': '#f4ee43'  // Jaune
+        "J8S": "#fffb00",
+        "JOD": "#fffb00",
+        "M7M": "#fffb00",
+        "N7H": "#0433ff",
+        "RH": "#ff40ff",
+        "RTT": "#ff40ff",
+        "CAA": "#00f900",
+        "FH": "#00f900",
+        "J2B": "#fffb00",
+        "J9B": "#fffb00",
+        "JPX": "#fffb00",
+        "MAL": "#ff2600",
+        "RC": "#ff40ff",
+        "RHD": "#ff40ff",
+        "SD-": "#00f900",
+        "FE": "#00f900",
+        "GTI": "#ff40ff",
+        "J8D": "#fffb00",
+        "J9D": "#fffb00",
+        "JPY": "#fffb00",
+        "MAT": "#ff2600",
+        "RD": "#ff40ff",
+        "RN": "#ff40ff",
+        "SFC": "#fffb00",
+        "C9E": "#ff9300",
+        "J9L": "#fffb00",
+        "M7E": "#fffb00",
+        "CA": "#00f900",
+        "JCS": "#fffb00",
+        "RTP": "#ff40ff",
+        "FGU": "#00f900",
+        "HS-": "#00f900",
+        "J9F": "#fffb00",
+        "I8C": "#fffb00",
+        "N2C": "#0433ff"
     };
     
     // Retourner la couleur correspondante ou null si aucune correspondance
@@ -773,16 +798,41 @@ function getCodeDescription(code) {
     
     // Sinon, utiliser les descriptions par défaut
     const codeDescriptions = {
-        'C9E': 'C9E',
-        'FH': 'Formation en heures',
-        'J2B': 'J2B',
-        'J9B': 'J9B',
-        'JPX': 'JPX',
-        'M7M': 'M7M',
-        'N7H': 'Nuit 7heure',
-        'RH': 'repos Hebdomadaire',
-        'RC': 'Repos copensatoire',
-        'M7E': 'M7E'
+        "J8S": "J8S",
+        "JOD": "JOD",
+        "M7M": "M7M",
+        "N7H": "Nuit 7heure",
+        "RH": "repos Hebdomadaire",
+        "RTT": "RTT",
+        "CAA": "CAA",
+        "FH": "Formation en heures",
+        "J2B": "J2B",
+        "J9B": "J9B",
+        "JPX": "JPX",
+        "MAL": "MAL",
+        "RC": "Repos copensatoire",
+        "RHD": "RHD",
+        "SD-": "SD-",
+        "FE": "FE",
+        "GTI": "GTI",
+        "J8D": "J8D",
+        "J9D": "J9D",
+        "JPY": "JPY",
+        "MAT": "MAT",
+        "RD": "RD",
+        "RN": "RN",
+        "SFC": "SFC",
+        "C9E": "C9E",
+        "J9L": "J9L",
+        "M7E": "M7E",
+        "CA": "CA",
+        "JCS": "JCS",
+        "RTP": "RTP",
+        "FGU": "FGU",
+        "HS-": "HS-",
+        "J9F": "J9F",
+        "I8C": "I8C",
+        "N2C": "N2C"
     };
     
     // Retourner la description correspondante ou null si aucune correspondance
@@ -1288,29 +1338,215 @@ function saveCodesInAppSettings(codes) {
 // Retourne les codes par défaut
 function getDefaultCodes() {
     return {
-        "JT": {
-            "description": "Journée Travaillée",
-            "startTime": "09:00",
+        "J8S": {
+            "description": "J8S",
+            "startTime": "08:00",
+            "endTime": "16:18",
+            "color": "#fffb00"
+        },
+        "JOD": {
+            "description": "JOD",
+            "startTime": "08:00",
             "endTime": "17:00",
-            "color": "#4285f4"
+            "color": "#fffb00"
         },
-        "CA": {
-            "description": "Congé Annuel",
-            "startTime": "00:00",
-            "endTime": "23:59",
-            "color": "#0f9d58"
+        "M7M": {
+            "description": "M7M",
+            "startTime": "07:45",
+            "endTime": "15:15",
+            "color": "#fffb00"
         },
-        "FE": {
-            "description": "Férié",
-            "startTime": "00:00",
-            "endTime": "23:59",
-            "color": "#db4437"
+        "N7H": {
+            "description": "N7H",
+            "startTime": "19:15",
+            "endTime": "07:30",
+            "color": "#0433ff"
         },
         "RH": {
-            "description": "Repos Hebdomadaire",
-            "startTime": "00:00",
-            "endTime": "23:59",
-            "color": "#f4b400"
+            "description": "RH",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#ff40ff"
+        },
+        "RTT": {
+            "description": "RTT",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#ff40ff"
+        },
+        "CAA": {
+            "description": "CAA",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#00f900"
+        },
+        "FH": {
+            "description": "FH",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#00f900"
+        },
+        "J2B": {
+            "description": "J2B",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#fffb00"
+        },
+        "J9B": {
+            "description": "J9B",
+            "startTime": "09:30",
+            "endTime": "15:30",
+            "color": "#fffb00"
+        },
+        "JPX": {
+            "description": "JPX",
+            "startTime": "07:15",
+            "endTime": "19:30",
+            "color": "#fffb00"
+        },
+        "MAL": {
+            "description": "MAL",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#ff2600"
+        },
+        "RC": {
+            "description": "RC",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#ff40ff"
+        },
+        "RHD": {
+            "description": "RHD",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#ff40ff"
+        },
+        "SD-": {
+            "description": "SD-",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#00f900"
+        },
+        "FE": {
+            "description": "FE",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#00f900"
+        },
+        "GTI": {
+            "description": "GTI",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#ff40ff"
+        },
+        "J8D": {
+            "description": "J8D",
+            "startTime": "08:00",
+            "endTime": "15:30",
+            "color": "#fffb00"
+        },
+        "J9D": {
+            "description": "J9D",
+            "startTime": "09:00",
+            "endTime": "16:30",
+            "color": "#fffb00"
+        },
+        "JPY": {
+            "description": "JPY",
+            "startTime": "07:15",
+            "endTime": "17:15",
+            "color": "#fffb00"
+        },
+        "MAT": {
+            "description": "MAT",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#ff2600"
+        },
+        "RD": {
+            "description": "RD",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#ff40ff"
+        },
+        "RN": {
+            "description": "RN",
+            "startTime": "19:15",
+            "endTime": "07:30",
+            "color": "#ff40ff"
+        },
+        "SFC": {
+            "description": "SFC",
+            "startTime": "08:15",
+            "endTime": "18:00",
+            "color": "#fffb00"
+        },
+        "C9E": {
+            "description": "C9E",
+            "startTime": "08:30",
+            "endTime": "18:00",
+            "color": "#ff9300"
+        },
+        "J9L": {
+            "description": "J9L",
+            "startTime": "09:30",
+            "endTime": "17:30",
+            "color": "#fffb00"
+        },
+        "M7E": {
+            "description": "M7E",
+            "startTime": "07:30",
+            "endTime": "15:00",
+            "color": "#fffb00"
+        },
+        "CA": {
+            "description": "CA",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#00f900"
+        },
+        "JCS": {
+            "description": "JCS",
+            "startTime": "08:00",
+            "endTime": "16:00",
+            "color": "#fffb00"
+        },
+        "RTP": {
+            "description": "RTP",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#ff40ff"
+        },
+        "FGU": {
+            "description": "FGU",
+            "startTime": "08:00",
+            "endTime": "17:30",
+            "color": "#00f900"
+        },
+        "HS-": {
+            "description": "HS-",
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "color": "#00f900"
+        },
+        "J9F": {
+            "description": "J9F",
+            "startTime": "09:00",
+            "endTime": "18:00",
+            "color": "#fffb00"
+        },
+        "I8C": {
+            "description": "I8C",
+            "startTime": "08:15",
+            "endTime": "15:45",
+            "color": "#fffb00"
+        },
+        "N2C": {
+            "description": "N2C",
+            "startTime": "19:15",
+            "endTime": "05:00",
+            "color": "#0433ff"
         }
     };
 }
@@ -1834,7 +2070,7 @@ function loadSettingsFile() {
             if (data.apiSettings) {
                 if (appSettingsJson) {
                     try {
-                        if (appSettings && appSettings.apiSettings && appSettings.apiSettings.apiKey) {
+                        if (appSettings && appSettings.apiSettings && appState.apiSettings.apiKey) {
                             console.log("Paramètres API existants conservés (clé API déjà configurée)");
                             return;
                         }
