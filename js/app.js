@@ -320,14 +320,15 @@ function updateFormState() {
 }
 
 /**
- * Analyse le texte OCR pour une personne spécifique
- * @param {string} ocrText - Le texte OCR à analyser
- * @param {string} personName - Le nom de la personne à rechercher
- * @param {number} month - Le mois sélectionné (1-12)
- * @param {number} year - L'année sélectionnée
- * @returns {Object} - Les résultats de l'analyse
+ * Analyse le texte OCR pour extraire les codes correspondant à une personne
+ * 
+ * @param {string} ocrText - Texte brut de l'OCR
+ * @param {string} personName - Nom de la personne à rechercher
+ * @param {number} month - Mois (1-12)
+ * @param {number} year - Année
+ * @returns {Object} - Résultat de l'analyse
  */
-async function analyzeOcrTextForPerson(ocrText, personName, month, year) {
+async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), year = getCurrentYear()) {
     console.log(`Analyse du texte OCR pour ${personName}`);
     
     // Normaliser le nom pour la recherche
@@ -344,39 +345,80 @@ async function analyzeOcrTextForPerson(ocrText, personName, month, year) {
     let found = false;
     
     // Déterminer le format du texte OCR
-    if (cleanedText.includes('|') && cleanedText.includes('\n')) {
-        // Format de tableau (markdown ou autre)
-        console.log("Format tableau détecté");
+    if (cleanedText.includes('|')) {
+        // Format de tableau Markdown
+        console.log("Format Markdown (tableau) détecté");
         
-        // Diviser le texte en lignes
-        const lines = cleanedText.split('\n');
-        
-        // Rechercher la ligne contenant le nom de la personne
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
+        try {
+            // Rechercher directement la ligne contenant le nom de la personne
+            const lines = ocrText.split('\n');
+            console.log(`Nombre de lignes dans le texte OCR: ${lines.length}`);
             
-            // Vérifier si la ligne contient le nom de la personne
-            if (line.toUpperCase().includes(normalizedName)) {
-                console.log(`Ligne trouvée pour ${normalizedName}: ${line}`);
-                found = true;
-                
+            let targetLine = null;
+            for (const line of lines) {
+                if (line.toUpperCase().includes(normalizedName)) {
+                    targetLine = line;
+                    console.log(`Ligne trouvée pour ${normalizedName}: ${line}`);
+                    found = true;
+                    break;
+                }
+            }
+            
+            if (targetLine) {
                 // Diviser la ligne en cellules
-                const cells = line.split('|').map(cell => cell.trim());
+                const cells = targetLine.split('|').map(cell => cell.trim()).filter(cell => cell !== '');
+                console.log(`Nombre de cellules trouvées: ${cells.length}`);
                 
-                // Ignorer la première cellule (nom) et parcourir les autres cellules
-                for (let j = 1; j < cells.length; j++) {
-                    const cell = cells[j];
+                // Afficher toutes les cellules pour le débogage
+                for (let j = 0; j < cells.length; j++) {
+                    console.log(`Cellule ${j}: "${cells[j]}"`);
+                }
+                
+                // Extraire les codes des cellules (ignorer la première cellule qui contient le nom et la deuxième qui contient le pourcentage)
+                for (let j = 2; j < cells.length; j++) {
+                    let cell = cells[j];
                     if (cell && cell !== '') {
+                        // Supprimer les astérisques pour les cellules en gras
+                        cell = cell.replace(/\*\*/g, '').trim();
+                        console.log(`Code extrait de la cellule ${j}: "${cell}"`);
+                        
                         // Vérifier si le code est valide
                         if (isValidCode(cell)) {
-                            codes.push(cell);
+                            // Si le code est valide mais pas dans la liste des codes connus, essayer de trouver le code le plus similaire
+                            if (appState.validCodes && !appState.validCodes.includes(cell)) {
+                                const correctedCode = findMostSimilarCode(cell, appState.validCodes);
+                                if (correctedCode && correctedCode !== cell) {
+                                    console.log(`Code corrigé: "${cell}" -> "${correctedCode}"`);
+                                    codes.push(correctedCode);
+                                } else {
+                                    codes.push(cell);
+                                }
+                            } else {
+                                codes.push(cell);
+                            }
+                        } else {
+                            // Si le code n'est pas valide, essayer de trouver le code le plus similaire
+                            if (appState.validCodes && appState.validCodes.length > 0) {
+                                const correctedCode = findMostSimilarCode(cell, appState.validCodes);
+                                if (correctedCode) {
+                                    console.log(`Code corrigé: "${cell}" -> "${correctedCode}"`);
+                                    codes.push(correctedCode);
+                                } else {
+                                    console.log(`Code invalide ignoré: "${cell}"`);
+                                }
+                            } else {
+                                console.log(`Code invalide ignoré: "${cell}"`);
+                            }
                         }
                     }
                 }
                 
-                console.log(`Codes extraits pour ${normalizedName}: ${codes.join(', ')}`);
-                break;
+                console.log(`Codes extraits pour ${normalizedName} (format Markdown): ${codes.join(', ')}`);
+            } else {
+                console.log(`Aucune ligne trouvée pour ${normalizedName} dans le tableau`);
             }
+        } catch (error) {
+            console.error("Erreur lors de l'analyse du tableau Markdown:", error);
         }
     } else {
         // Format texte brut
@@ -399,17 +441,41 @@ async function analyzeOcrTextForPerson(ocrText, personName, month, year) {
                 // Filtrer les codes valides
                 for (const code of potentialCodes) {
                     if (isValidCode(code)) {
-                        codes.push(code);
+                        // Si le code est valide mais pas dans la liste des codes connus, essayer de trouver le code le plus similaire
+                        if (appState.validCodes && !appState.validCodes.includes(code)) {
+                            const correctedCode = findMostSimilarCode(code, appState.validCodes);
+                            if (correctedCode && correctedCode !== code) {
+                                console.log(`Code corrigé: "${code}" -> "${correctedCode}"`);
+                                codes.push(correctedCode);
+                            } else {
+                                codes.push(code);
+                            }
+                        } else {
+                            codes.push(code);
+                        }
+                    } else {
+                        // Si le code n'est pas valide, essayer de trouver le code le plus similaire
+                        if (appState.validCodes && appState.validCodes.length > 0) {
+                            const correctedCode = findMostSimilarCode(code, appState.validCodes);
+                            if (correctedCode) {
+                                console.log(`Code corrigé: "${code}" -> "${correctedCode}"`);
+                                codes.push(correctedCode);
+                            } else {
+                                console.log(`Code invalide ignoré: "${code}"`);
+                            }
+                        } else {
+                            console.log(`Code invalide ignoré: "${code}"`);
+                        }
                     }
                 }
                 
                 console.log(`Codes extraits pour ${normalizedName} (texte brut): ${codes.join(', ')}`);
+            } else {
+                console.log(`Nom ${normalizedName} non trouvé dans le texte OCR`);
             }
         } catch (error) {
             console.error("Erreur lors de l'extraction des codes en texte brut:", error);
         }
-        
-        console.log("Format texte brut non pris en charge pour le moment");
     }
     
     console.log(`${codes.length} codes valides trouvés`);
@@ -429,27 +495,13 @@ async function analyzeOcrTextForPerson(ocrText, personName, month, year) {
         codes.splice(daysInMonth);
     }
     
-    // Si aucun code n'a été trouvé, retourner un tableau de codes vides
-    if (!found || codes.length === 0) {
-        console.log("Aucun code trouvé, création d'un tableau de codes vides");
-        const emptyCodes = Array(daysInMonth).fill('');
-        console.log(`${emptyCodes.length} codes vides créés`);
-        
-        return {
-            found: false,
-            name: normalizedName,
-            codes: emptyCodes,
-            rawText: ocrText,
-            month: month
-        };
-    }
-    
     return {
-        found: true,
-        name: normalizedName,
+        found: found,
+        name: personName,
         codes: codes,
         rawText: ocrText,
-        month: month
+        month: month,
+        year: year
     };
 }
 
@@ -1246,14 +1298,19 @@ function levenshteinDistance(str1, str2) {
 
 /**
  * Vérifie si une chaîne est un code valide
- * @param {string} str - Chaîne à vérifier
- * @returns {boolean} - True si la chaîne est un code valide
+ * @param {string} str - Code à vérifier
+ * @returns {boolean} - True si le code est valide
  */
 function isValidCode(str) {
     if (!str) return false;
     
     // Normaliser la chaîne
     str = str.trim().toUpperCase();
+    
+    // Accepter tous les codes de 2 à 4 caractères alphanumériques
+    if (/^[A-Z0-9]{2,4}$/.test(str)) {
+        return true;
+    }
     
     // Vérifier si c'est un code connu dans les codes valides de l'application
     if (appState.validCodes && appState.validCodes.includes(str)) {
@@ -1807,7 +1864,7 @@ async function analyzeSchedule() {
         
         // Analyser le texte OCR pour la personne spécifique
         console.log(`Analyse du texte OCR pour ${personName}...`);
-        const result = await analyzeOcrTextForPerson(ocrResult.ocrText, personName, month, year);
+        const result = await analyzeOcrText(ocrResult.ocrText, personName, month, year);
         
         // Mettre à jour l'état de l'application
         appState.results = result;
@@ -1968,13 +2025,12 @@ function processManualCodes() {
     // Compléter ou tronquer les codes si nécessaire
     if (codes.length < daysInMonth) {
         console.log(`Complétion des codes manquants (${codes.length} -> ${daysInMonth})`);
-        const defaultCode = 'RHE'; // Code par défaut
         while (codes.length < daysInMonth) {
-            codes.push(defaultCode);
+            codes.push(''); // Code vide au lieu d'un code par défaut
         }
     } else if (codes.length > daysInMonth) {
         console.log(`Troncature des codes excédentaires (${codes.length} -> ${daysInMonth})`);
-        codes = codes.slice(0, daysInMonth);
+        codes.splice(daysInMonth);
     }
     
     // Créer le résultat
@@ -2005,6 +2061,42 @@ function processManualCodes() {
     
     // Afficher un message de succès
     showToast('Codes traités avec succès', 'success');
+}
+
+/**
+ * Trouve le code le plus similaire dans une liste de codes valides
+ * 
+ * @param {string} code - Code à comparer
+ * @param {string[]} validCodes - Liste des codes valides
+ * @param {number} threshold - Seuil de similarité (0-1)
+ * @returns {string|null} - Code le plus similaire ou null si aucun code ne dépasse le seuil
+ */
+function findMostSimilarCode(code, validCodes, threshold = 0.5) {
+    if (!code || !validCodes || validCodes.length === 0) {
+        return null;
+    }
+    
+    // Normaliser le code
+    code = code.trim().toUpperCase();
+    
+    let maxSimilarity = 0;
+    let mostSimilarCode = null;
+    
+    for (const validCode of validCodes) {
+        const similarity = calculateStringSimilarity(code, validCode);
+        
+        if (similarity > maxSimilarity) {
+            maxSimilarity = similarity;
+            mostSimilarCode = validCode;
+        }
+    }
+    
+    // Retourner le code le plus similaire si la similarité dépasse le seuil
+    if (maxSimilarity >= threshold) {
+        return mostSimilarCode;
+    }
+    
+    return null;
 }
 
 /**
