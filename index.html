@@ -90,6 +90,10 @@
                         <h3>Planning pour <span id="personNamesList"></span></h3>
                     </div>
                     
+                    <div id="calendarContainer" class="calendar-container">
+                        <!-- Le calendrier sera inséré ici -->
+                    </div>
+                    
                     <div class="table-container">
                         <table class="results-table">
                             <thead>
@@ -128,9 +132,16 @@
         <p id="toastMessage"></p>
     </div>
 
-    <script src="js/app.js?v=10"></script>
+    <!-- Chargement des modules JavaScript -->
+    <script src="js/core.js?v=1"></script>
+    <script src="js/codes.js?v=1"></script>
+    <script src="js/calendar.js?v=1"></script>
+    <script src="js/file-handling.js?v=1"></script>
+    <script src="js/ocr-analysis.js?v=1"></script>
+    <script src="js/manual-entry.js?v=1"></script>
     <script src="js/mistral-api.js?v=2"></script>
     <script src="js/calendar-utils.js?v=2"></script>
+    <script src="js/app.js?v=11"></script>
     <script>
         // Enregistrer le service worker
         if ('serviceWorker' in navigator) {

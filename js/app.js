@@ -55,6 +55,8 @@ function initElements() {
         exportIcsButton: document.getElementById('exportIcsButton'),
         exportJsonButton: document.getElementById('exportJsonButton'),
         copyButton: document.getElementById('copyButton'),
+        calendarContainer: document.getElementById('calendarContainer'),
+        exportButtons: document.getElementById('exportButtons'),
         
         // Paramètres
         apiKeyInput: document.getElementById('apiKeyInput'),
@@ -98,25 +100,9 @@ function initAppState() {
 function initEventListeners() {
     console.log("Initialisation des gestionnaires d'événements");
     
-    // Gestionnaire pour le chargement de fichier
-    if (elements.fileInput) {
-        elements.fileInput.addEventListener('change', handleFileSelect);
-    }
-    
-    // Gestionnaire pour le glisser-déposer
-    if (elements.dropArea) {
-        elements.dropArea.addEventListener('dragover', handleDragOver);
-        elements.dropArea.addEventListener('drop', handleDrop);
-    }
-    
     // Gestionnaire pour le bouton d'analyse
     if (elements.analyzeButton) {
         elements.analyzeButton.addEventListener('click', analyzeSchedule);
-    }
-    
-    // Gestionnaire pour le bouton de suppression d'image
-    if (elements.removeImageBtn) {
-        elements.removeImageBtn.addEventListener('click', removeImage);
     }
     
     // Gestionnaire pour la saisie du nom
@@ -144,1596 +130,30 @@ function initEventListeners() {
 }
 
 /**
- * Empêche le comportement par défaut des événements
- */
-function preventDefaults(e) {
-    e.preventDefault();
-    e.stopPropagation();
-}
-
-/**
- * Met en évidence la zone de dépôt
- */
-function highlight(e) {
-    elements.dropArea.classList.add('highlight');
-}
-
-/**
- * Retire la mise en évidence de la zone de dépôt
- */
-function unhighlight(e) {
-    elements.dropArea.classList.remove('highlight');
-}
-
-/**
- * Gère le survol de la zone de dépôt
- */
-function handleDragOver(e) {
-    preventDefaults(e);
-    highlight(e);
-}
-
-/**
- * Gère le dépôt de fichier
- */
-function handleDrop(e) {
-    preventDefaults(e);
-    unhighlight(e);
-    
-    const dt = e.dataTransfer;
-    const files = dt.files;
-    
-    if (files.length > 0) {
-        appState.imageFile = files[0];
-        console.log("Image stockée dans appState.imageFile:", files[0].name);
-        
-        // Afficher l'aperçu de l'image
-        const reader = new FileReader();
-        
-        reader.onload = function(e) {
-            // Afficher l'aperçu
-            if (elements.filePreview) {
-                elements.filePreview.src = e.target.result;
-            }
-            
-            // Afficher le conteneur d'aperçu
-            if (elements.previewContainer) {
-                elements.previewContainer.hidden = false;
-            }
-            
-            // Masquer la zone de dépôt
-            if (elements.dropArea) {
-                elements.dropArea.hidden = true;
-            }
-            
-            // Mettre à jour l'état du formulaire
-            updateFormState();
-        };
-        
-        reader.readAsDataURL(files[0]);
-        console.log("Lecture du fichier lancée");
-    }
-}
-
-/**
- * Gère la sélection de fichier
- */
-function handleFileSelect(e) {
-    const files = e.target.files;
-    
-    if (files.length > 0) {
-        appState.imageFile = files[0];
-        console.log("Image stockée dans appState.imageFile:", files[0].name);
-        
-        // Afficher l'aperçu de l'image
-        const reader = new FileReader();
-        
-        reader.onload = function(e) {
-            // Afficher l'aperçu
-            if (elements.filePreview) {
-                elements.filePreview.src = e.target.result;
-            }
-            
-            // Afficher le conteneur d'aperçu
-            if (elements.previewContainer) {
-                elements.previewContainer.hidden = false;
-            }
-            
-            // Masquer la zone de dépôt
-            if (elements.dropArea) {
-                elements.dropArea.hidden = true;
-            }
-            
-            // Mettre à jour l'état du formulaire
-            updateFormState();
-        };
-        
-        reader.readAsDataURL(files[0]);
-        console.log("Lecture du fichier lancée");
-    }
-}
-
-/**
- * Supprime l'image sélectionnée
- */
-function removeImage() {
-    console.log("Suppression de l'image");
-    
-    // Réinitialiser l'état de l'application
-    appState.imageFile = null;
-    
-    // Réinitialiser l'interface
-    if (elements.filePreview) {
-        elements.filePreview.src = '';
-        elements.previewContainer.hidden = true;
-    }
-    
-    if (elements.dropArea) {
-        elements.dropArea.hidden = false;
-    }
-    
-    if (elements.fileInput) {
-        elements.fileInput.value = '';
-    }
-    
-    // Réinitialiser les résultats
-    if (elements.resultsSection) {
-        elements.resultsSection.hidden = true;
-    }
-    
-    // Réinitialiser la saisie du nom
-    if (elements.personNameInput) {
-        elements.personNameInput.value = '';
-    }
-    
-    // Mettre à jour l'état du formulaire
-    updateFormState();
-}
-
-/**
  * Met à jour l'état du formulaire
  */
 function updateFormState() {
     console.log("Mise à jour de l'état du formulaire");
-    console.log("État actuel:", {
-        imageFile: appState.imageFile ? "présent" : "absent",
-        personName: elements.personNameInput ? elements.personNameInput.value : "non disponible"
-    });
+    
+    // Vérifier si un nom a été saisi
+    const personName = elements.personNameInput ? elements.personNameInput.value.trim() : '';
     
     // Activer/désactiver le bouton d'analyse
     if (elements.analyzeButton) {
-        const hasImage = appState.imageFile !== null;
-        const hasName = elements.personNameInput && elements.personNameInput.value.trim() !== '';
+        const canAnalyze = (appState.imageFile !== null && personName !== '');
+        elements.analyzeButton.disabled = !canAnalyze;
         
-        console.log("Conditions pour activer le bouton:", { hasImage, hasName });
-        
-        if (hasImage && hasName) {
-            console.log("Activation du bouton d'analyse");
-            elements.analyzeButton.disabled = false;
-            elements.analyzeButton.classList.remove('disabled');
+        if (canAnalyze) {
+            elements.analyzeButton.classList.add('active');
         } else {
-            console.log("Désactivation du bouton d'analyse");
-            elements.analyzeButton.disabled = true;
-            elements.analyzeButton.classList.add('disabled');
-        }
-    }
-}
-
-/**
- * Analyse le texte OCR pour extraire les codes correspondant à une personne
- * 
- * @param {string} ocrText - Texte brut de l'OCR
- * @param {string} personName - Nom de la personne à rechercher
- * @param {number} month - Mois (1-12)
- * @param {number} year - Année
- * @returns {Object} - Résultat de l'analyse
- */
-async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), year = getCurrentYear()) {
-    console.log(`Analyse du texte OCR pour ${personName}`);
-    
-    // Normaliser le nom pour la recherche
-    const normalizedName = personName.toUpperCase();
-    console.log(`Nom normalisé: ${normalizedName}`);
-    
-    // Nettoyer le texte OCR
-    const cleanedText = cleanOcrText(ocrText);
-    
-    // Tableau pour stocker les codes trouvés
-    const codes = [];
-    
-    // Indicateur si la personne a été trouvée
-    let found = false;
-    
-    // Déterminer le format du texte OCR
-    if (cleanedText.includes('|')) {
-        // Format de tableau Markdown
-        console.log("Format Markdown (tableau) détecté");
-        
-        try {
-            // Rechercher directement la ligne contenant le nom de la personne
-            const lines = ocrText.split('\n');
-            console.log(`Nombre de lignes dans le texte OCR: ${lines.length}`);
-            
-            let targetLine = null;
-            for (const line of lines) {
-                if (line.toUpperCase().includes(normalizedName)) {
-                    targetLine = line;
-                    console.log(`Ligne trouvée pour ${normalizedName}: ${line}`);
-                    found = true;
-                    break;
-                }
-            }
-            
-            if (targetLine) {
-                // Diviser la ligne en cellules
-                const cells = targetLine.split('|').map(cell => cell.trim()).filter(cell => cell !== '');
-                console.log(`Nombre de cellules trouvées: ${cells.length}`);
-                
-                // Afficher toutes les cellules pour le débogage
-                for (let j = 0; j < cells.length; j++) {
-                    console.log(`Cellule ${j}: "${cells[j]}"`);
-                }
-                
-                // Extraire les codes des cellules (ignorer la première cellule qui contient le nom et la deuxième qui contient le pourcentage)
-                for (let j = 2; j < cells.length; j++) {
-                    let cell = cells[j];
-                    if (cell && cell !== '') {
-                        // Supprimer les astérisques pour les cellules en gras
-                        cell = cell.replace(/\*\*/g, '').trim();
-                        console.log(`Code extrait de la cellule ${j}: "${cell}"`);
-                        
-                        // Vérifier si le code est valide
-                        if (isValidCode(cell)) {
-                            // Si le code est valide mais pas dans la liste des codes connus, essayer de trouver le code le plus similaire
-                            if (appState.validCodes && !appState.validCodes.includes(cell)) {
-                                const correctedCode = findMostSimilarCode(cell, appState.validCodes);
-                                if (correctedCode && correctedCode !== cell) {
-                                    console.log(`Code corrigé: "${cell}" -> "${correctedCode}"`);
-                                    codes.push(correctedCode);
-                                } else {
-                                    codes.push(cell);
-                                }
-                            } else {
-                                codes.push(cell);
-                            }
-                        } else {
-                            // Si le code n'est pas valide, essayer de trouver le code le plus similaire
-                            if (appState.validCodes && appState.validCodes.length > 0) {
-                                const correctedCode = findMostSimilarCode(cell, appState.validCodes);
-                                if (correctedCode) {
-                                    console.log(`Code corrigé: "${cell}" -> "${correctedCode}"`);
-                                    codes.push(correctedCode);
-                                } else {
-                                    console.log(`Code invalide ignoré: "${cell}"`);
-                                }
-                            } else {
-                                console.log(`Code invalide ignoré: "${cell}"`);
-                            }
-                        }
-                    }
-                }
-                
-                console.log(`Codes extraits pour ${normalizedName} (format Markdown): ${codes.join(', ')}`);
-            } else {
-                console.log(`Aucune ligne trouvée pour ${normalizedName} dans le tableau`);
-            }
-        } catch (error) {
-            console.error("Erreur lors de l'analyse du tableau Markdown:", error);
-        }
-    } else {
-        // Format texte brut
-        console.log("Format texte brut détecté");
-        
-        // Essayer d'extraire les codes à partir du texte brut
-        try {
-            // Rechercher le nom dans le texte
-            const nameIndex = cleanedText.toUpperCase().indexOf(normalizedName);
-            if (nameIndex !== -1) {
-                found = true;
-                
-                // Extraire le texte après le nom
-                const textAfterName = cleanedText.substring(nameIndex + normalizedName.length);
-                
-                // Rechercher des motifs de code (2-4 caractères alphanumériques)
-                const codeRegex = /\b[A-Z0-9]{2,4}\b/g;
-                const potentialCodes = textAfterName.match(codeRegex) || [];
-                
-                // Filtrer les codes valides
-                for (const code of potentialCodes) {
-                    if (isValidCode(code)) {
-                        // Si le code est valide mais pas dans la liste des codes connus, essayer de trouver le code le plus similaire
-                        if (appState.validCodes && !appState.validCodes.includes(code)) {
-                            const correctedCode = findMostSimilarCode(code, appState.validCodes);
-                            if (correctedCode && correctedCode !== code) {
-                                console.log(`Code corrigé: "${code}" -> "${correctedCode}"`);
-                                codes.push(correctedCode);
-                            } else {
-                                codes.push(code);
-                            }
-                        } else {
-                            codes.push(code);
-                        }
-                    } else {
-                        // Si le code n'est pas valide, essayer de trouver le code le plus similaire
-                        if (appState.validCodes && appState.validCodes.length > 0) {
-                            const correctedCode = findMostSimilarCode(code, appState.validCodes);
-                            if (correctedCode) {
-                                console.log(`Code corrigé: "${code}" -> "${correctedCode}"`);
-                                codes.push(correctedCode);
-                            } else {
-                                console.log(`Code invalide ignoré: "${code}"`);
-                            }
-                        } else {
-                            console.log(`Code invalide ignoré: "${code}"`);
-                        }
-                    }
-                }
-                
-                console.log(`Codes extraits pour ${normalizedName} (texte brut): ${codes.join(', ')}`);
-            } else {
-                console.log(`Nom ${normalizedName} non trouvé dans le texte OCR`);
-            }
-        } catch (error) {
-            console.error("Erreur lors de l'extraction des codes en texte brut:", error);
+            elements.analyzeButton.classList.remove('active');
         }
     }
     
-    console.log(`${codes.length} codes valides trouvés`);
-    
-    // Compléter les codes manquants pour atteindre le nombre de jours du mois
-    const daysInMonth = new Date(year, month, 0).getDate();
-    
-    // Si nous avons moins de codes que de jours dans le mois, compléter avec des codes vides
-    if (codes.length < daysInMonth) {
-        console.log(`Complétion des codes manquants (${codes.length} -> ${daysInMonth})`);
-        while (codes.length < daysInMonth) {
-            codes.push(''); // Code vide au lieu d'un code par défaut
-        }
-    } else if (codes.length > daysInMonth) {
-        // Si nous avons plus de codes que de jours dans le mois, tronquer
-        console.log(`Troncature des codes excédentaires (${codes.length} -> ${daysInMonth})`);
-        codes.splice(daysInMonth);
-    }
-    
-    return {
-        found: found,
-        name: personName,
-        codes: codes,
-        rawText: ocrText,
-        month: month,
-        year: year
-    };
-}
-
-/**
- * Nettoie le texte OCR pour améliorer la détection
- * @param {string} ocrText - Le texte OCR à nettoyer
- * @returns {string} - Le texte OCR nettoyé
- */
-function cleanOcrText(ocrText) {
-    // Remplacer les caractères problématiques
-    let cleanedText = ocrText
-        .replace(/OR 95% CI/g, '')  // Supprimer les "OR 95% CI" qui peuvent être des erreurs OCR
-        .replace(/\|\s+\|/g, '| |') // Normaliser les cellules vides
-        .replace(/\s{2,}/g, ' ');   // Normaliser les espaces multiples
-    
-    return cleanedText;
-}
-
-/**
- * Affiche les résultats de l'analyse
- * @param {Object} result - Les résultats de l'analyse
- */
-function displayResults(result) {
-    console.log("Affichage des résultats:", result);
-    
-    if (!result) {
-        showToast("Erreur lors de l'analyse", "error");
-        return;
-    }
-    
-    // Vider les conteneurs précédents
-    if (elements.resultsContent) {
-        // Conserver uniquement les éléments de base
-        const childrenToKeep = [];
-        Array.from(elements.resultsContent.children).forEach(child => {
-            if (child.classList.contains('results-header') || 
-                child.classList.contains('table-container') ||
-                child.classList.contains('export-buttons')) {
-                childrenToKeep.push(child);
-            } else {
-                elements.resultsContent.removeChild(child);
-            }
-        });
-    }
-    
-    // Mettre à jour le nom de la personne
-    if (elements.personNamesList) {
-        elements.personNamesList.textContent = result.name;
-    }
-    
-    // Vider le tableau des résultats
-    if (elements.resultsTableBody) {
-        elements.resultsTableBody.innerHTML = '';
-    }
-    
-    // Masquer l'indicateur de chargement
-    if (elements.loadingIndicator) {
-        elements.loadingIndicator.hidden = true;
-    }
-    
-    // Afficher le contenu des résultats
-    if (elements.resultsContent) {
-        elements.resultsContent.hidden = false;
-    }
-    
-    // Afficher la section des résultats
-    if (elements.resultsSection) {
-        elements.resultsSection.hidden = false;
-    }
-    
-    // Si aucun code n'a été trouvé
-    if (!result.codes || result.codes.length === 0) {
-        // Ajouter une ligne indiquant qu'aucun code n'a été trouvé
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td colspan="3" class="no-results">Aucun code trouvé pour ${result.name}</td>
-        `;
-        elements.resultsTableBody.appendChild(row);
-        
-        return;
-    }
-    
-    // Modifier l'en-tête du tableau pour afficher "Horaires" au lieu de "Description"
-    const tableHeaders = document.querySelectorAll('#resultsTable th');
-    if (tableHeaders && tableHeaders.length >= 3) {
-        tableHeaders[2].textContent = 'Horaires';
-    }
-    
-    // Obtenir le mois et l'année pour calculer les dates exactes
-    const month = result.month || new Date().getMonth() + 1; // Mois de 1 à 12
-    const year = result.year || new Date().getFullYear();
-    
-    // Ajouter chaque code au tableau
-    result.codes.forEach((codeInfo, index) => {
-        // Déterminer le jour en fonction de l'index et du mois
-        const day = index + 1;
-        
-        // Créer un objet Date pour obtenir le jour de la semaine
-        const date = new Date(year, month - 1, day);
-        const dayOfWeek = date.toLocaleDateString('fr-FR', { weekday: 'long' });
-        const dayOfMonth = date.getDate();
-        const monthName = date.toLocaleDateString('fr-FR', { month: 'long' });
-        
-        // Formater le jour (ex: "Lundi 1 mars")
-        const formattedDay = `${dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1)} ${dayOfMonth} ${monthName}`;
-        
-        const row = document.createElement('tr');
-        
-        // Colonne du jour
-        const dayCell = document.createElement('td');
-        dayCell.textContent = formattedDay;
-        row.appendChild(dayCell);
-        
-        // Colonne du code
-        const codeCell = document.createElement('td');
-        const codeSelect = document.createElement('select');
-        codeSelect.className = 'code-select';
-        codeSelect.dataset.index = index;
-        
-        // Ajouter les options à partir des codes valides
-        if (appState.validCodes && appState.validCodes.length > 0) {
-            // Ajouter chaque code valide comme option
-            appState.validCodes.forEach(validCode => {
-                const option = document.createElement('option');
-                option.value = validCode;
-                option.textContent = validCode;
-                
-                // Sélectionner le code actuel
-                if (validCode === codeInfo) {
-                    option.selected = true;
-                }
-                
-                codeSelect.appendChild(option);
-            });
-        } else {
-            // Si aucun code valide n'est défini, ajouter uniquement le code actuel
-            const option = document.createElement('option');
-            option.value = codeInfo;
-            option.textContent = codeInfo;
-            option.selected = true;
-            codeSelect.appendChild(option);
-        }
-        
-        // Ajouter un gestionnaire d'événements pour mettre à jour le code lorsqu'il est modifié
-        codeSelect.addEventListener('change', function() {
-            // Mettre à jour le code dans les résultats
-            const newCode = this.value;
-            result.codes[index] = newCode;
-            
-            // Mettre à jour l'état de l'application
-            appState.results = result;
-            
-            // Mettre à jour les horaires
-            const hoursElement = row.querySelector('.code-hours');
-            if (hoursElement) {
-                const hours = getCodeHours(newCode);
-                hoursElement.textContent = hours || 'Horaires non définis';
-            }
-            
-            // Mettre à jour la couleur de fond
-            const codeColor = getCodeColor(newCode);
-            if (codeColor) {
-                this.style.backgroundColor = codeColor;
-                this.parentElement.style.backgroundColor = codeColor;
-            }
-        });
-        
-        // Définir la couleur de fond initiale
-        const codeColor = getCodeColor(codeInfo);
-        if (codeColor) {
-            codeSelect.style.backgroundColor = codeColor;
-            codeCell.style.backgroundColor = codeColor;
-        }
-        
-        codeCell.appendChild(codeSelect);
-        row.appendChild(codeCell);
-        
-        // Colonne des horaires
-        const hoursCell = document.createElement('td');
-        const hoursSpan = document.createElement('span');
-        hoursSpan.className = 'code-hours';
-        
-        // Obtenir les horaires du code
-        const hours = getCodeHours(codeInfo);
-        hoursSpan.textContent = hours || 'Horaires non définis';
-        
-        hoursCell.appendChild(hoursSpan);
-        row.appendChild(hoursCell);
-        
-        // Ajouter la ligne au tableau
-        elements.resultsTableBody.appendChild(row);
-    });
-    
-    // Activer les boutons d'exportation
-    if (elements.exportIcsButton) {
-        elements.exportIcsButton.disabled = false;
-    }
-    
-    if (elements.exportJsonButton) {
-        elements.exportJsonButton.disabled = false;
-    }
-    
-    if (elements.copyButton) {
-        elements.copyButton.disabled = false;
-    }
-    
-    // Ajouter une légende des codes
-    const codeLegend = createCodeLegend();
-    elements.resultsContent.appendChild(codeLegend);
-    
-    // S'assurer que le loader est bien masqué
-    if (elements.loadingIndicator) {
-        elements.loadingIndicator.hidden = true;
-    }
-}
-
-/**
- * Obtient les horaires correspondant à un code
- * @param {string} code - Le code
- * @returns {string|null} - Les horaires correspondants ou null si aucune correspondance
- */
-function getCodeHours(code) {
-    // Vérifier si le code existe dans les codes valides
-    if (appState.codesData && appState.codesData[code]) {
-        const startTime = appState.codesData[code].startTime || '';
-        const endTime = appState.codesData[code].endTime || '';
-        
-        if (startTime && endTime) {
-            return `${startTime} - ${endTime}`;
-        } else if (startTime) {
-            return `Début: ${startTime}`;
-        } else if (endTime) {
-            return `Fin: ${endTime}`;
-        }
-    }
-    
-    return null;
-}
-
-/**
- * Crée une légende des codes avec leurs couleurs et descriptions
- * @returns {HTMLElement} - L'élément de légende des codes
- */
-function createCodeLegend() {
-    const container = document.createElement('div');
-    container.className = 'code-legend';
-    
-    const title = document.createElement('h3');
-    title.textContent = 'Légende des codes';
-    container.appendChild(title);
-    
-    const legendItems = document.createElement('div');
-    legendItems.className = 'code-legend-items';
-    
-    // Ajouter chaque code valide à la légende
-    if (appState.validCodes && appState.validCodes.length > 0) {
-        appState.validCodes.forEach(code => {
-            const item = document.createElement('div');
-            item.className = `code-legend-item code-${code}`;
-            
-            const colorBox = document.createElement('div');
-            colorBox.className = 'code-legend-color';
-            colorBox.style.backgroundColor = getCodeColor(code) || '#ccc';
-            
-            const text = document.createElement('span');
-            const description = getCodeDescription(code) || 'Code';
-            const hours = getCodeHours(code) || 'Toute la journée';
-            
-            // Inclure les horaires dans la légende
-            text.textContent = `${code}: ${description} (${hours})`;
-            
-            item.appendChild(colorBox);
-            item.appendChild(text);
-            legendItems.appendChild(item);
-        });
-    }
-    
-    container.appendChild(legendItems);
-    return container;
-}
-
-/**
- * Obtient la couleur correspondant à un code
- * @param {string} code - Le code
- * @returns {string|null} - La couleur correspondante ou null si aucune correspondance
- */
-function getCodeColor(code) {
-    // Vérifier si le code existe dans les codes valides
-    if (appState.codesData && appState.codesData[code] && appState.codesData[code].color) {
-        return appState.codesData[code].color;
-    }
-    
-    // Sinon, utiliser les couleurs par défaut
-    const codeColors = {
-        "J8S": "#fffb00",
-        "JOD": "#fffb00",
-        "M7M": "#fffb00",
-        "N7H": "#0433ff",
-        "RH": "#ff40ff",
-        "RTT": "#ff40ff",
-        "CAA": "#00f900",
-        "FH": "#00f900",
-        "J2B": "#fffb00",
-        "J9B": "#fffb00",
-        "JPX": "#fffb00",
-        "MAL": "#ff2600",
-        "RC": "#ff40ff",
-        "RHD": "#ff40ff",
-        "SD-": "#00f900",
-        "FE": "#00f900",
-        "GTI": "#ff40ff",
-        "J8D": "#fffb00",
-        "J9D": "#fffb00",
-        "JPY": "#fffb00",
-        "MAT": "#ff2600",
-        "RD": "#ff40ff",
-        "RN": "#ff40ff",
-        "SFC": "#fffb00",
-        "C9E": "#ff9300",
-        "J9L": "#fffb00",
-        "M7E": "#fffb00",
-        "CA": "#00f900",
-        "JCS": "#fffb00",
-        "RTP": "#ff40ff",
-        "FGU": "#00f900",
-        "HS-": "#00f900",
-        "J9F": "#fffb00",
-        "I8C": "#fffb00",
-        "N2C": "#0433ff"
-    };
-    
-    // Retourner la couleur correspondante ou null si aucune correspondance
-    return codeColors[code] || '#f5f5f5'; // Gris clair par défaut
-}
-
-/**
- * Obtient la description d'un code
- * @param {string} code - Le code
- * @returns {string|null} - La description du code ou null si aucune correspondance
- */
-function getCodeDescription(code) {
-    // Vérifier si le code existe dans les codes valides
-    if (appState.codesData && appState.codesData[code] && appState.codesData[code].description) {
-        return appState.codesData[code].description;
-    }
-    
-    // Sinon, utiliser les descriptions par défaut
-    const codeDescriptions = {
-        "J8S": "J8S",
-        "JOD": "JOD",
-        "M7M": "M7M",
-        "N7H": "Nuit 7heure",
-        "RH": "repos Hebdomadaire",
-        "RTT": "RTT",
-        "CAA": "CAA",
-        "FH": "Formation en heures",
-        "J2B": "J2B",
-        "J9B": "J9B",
-        "JPX": "JPX",
-        "MAL": "MAL",
-        "RC": "Repos copensatoire",
-        "RHD": "RHD",
-        "SD-": "SD-",
-        "FE": "FE",
-        "GTI": "GTI",
-        "J8D": "J8D",
-        "J9D": "J9D",
-        "JPY": "JPY",
-        "MAT": "MAT",
-        "RD": "RD",
-        "RN": "RN",
-        "SFC": "SFC",
-        "C9E": "C9E",
-        "J9L": "J9L",
-        "M7E": "M7E",
-        "CA": "CA",
-        "JCS": "JCS",
-        "RTP": "RTP",
-        "FGU": "FGU",
-        "HS-": "HS-",
-        "J9F": "J9F",
-        "I8C": "I8C",
-        "N2C": "N2C"
-    };
-    
-    // Retourner la description correspondante ou null si aucune correspondance
-    return codeDescriptions[code] || code;
-}
-
-/**
- * Exporte les résultats au format ICS (iCalendar)
- */
-function exportToICS() {
-    // Vérifier si des résultats sont disponibles
-    if (!appState.results || !appState.results.codes || appState.results.codes.length === 0) {
-        showToast("Aucun résultat à exporter", "error");
-        return;
-    }
-    
-    // Récupérer les informations
-    const personName = appState.results.name || 'Inconnu';
-    
-    // Récupérer les codes depuis l'interface utilisateur
-    const codes = [];
-    const codeSelects = document.querySelectorAll('.code-select');
-    
-    // Si nous avons des sélecteurs de code dans l'interface
-    if (codeSelects && codeSelects.length > 0) {
-        // Pour chaque jour du mois
-        for (let i = 0; i < appState.results.codes.length; i++) {
-            // Si le sélecteur existe pour ce jour
-            if (codeSelects[i]) {
-                codes.push(codeSelects[i].value);
-            } else {
-                // Sinon, utiliser le code original
-                codes.push(appState.results.codes[i]);
-            }
-        }
-        console.log("Codes récupérés pour l'exportation ICS:", codes);
-    } else {
-        // Fallback sur les codes stockés dans appState si l'interface n'est pas disponible
-        codes.push(...appState.results.codes);
-        console.log("Codes récupérés depuis appState pour l'exportation ICS:", codes);
-    }
-    
-    const month = appState.month || new Date().getMonth() + 1;
-    const year = appState.year || new Date().getFullYear();
-    
-    try {
-        // Créer le contenu du fichier ICS
-        let icsContent = [
-            "BEGIN:VCALENDAR",
-            "VERSION:2.0",
-            "PRODID:-//Calendrier CHAL//FR",
-            "CALSCALE:GREGORIAN",
-            "METHOD:PUBLISH",
-            `X-WR-CALNAME:Planning ${personName} - ${month}/${year}`
-        ];
-        
-        // Ajouter chaque code comme un événement
-        codes.forEach((codeInfo, index) => {
-            // Récupérer les informations du code
-            const code = codeInfo;
-            const day = index + 1;
-            
-            // Récupérer les horaires du code
-            let startTime = "00:00";
-            let endTime = "23:59";
-            let isAllDay = true;
-            
-            if (appState.codesData && appState.codesData[code]) {
-                if (appState.codesData[code].startTime && appState.codesData[code].endTime) {
-                    startTime = appState.codesData[code].startTime;
-                    endTime = appState.codesData[code].endTime;
-                    isAllDay = false;
-                } else if (appState.codesData[code].startTime) {
-                    startTime = appState.codesData[code].startTime;
-                    isAllDay = false;
-                } else if (appState.codesData[code].endTime) {
-                    endTime = appState.codesData[code].endTime;
-                    isAllDay = false;
-                }
-            }
-            
-            // Créer la date de début et de fin
-            const startDate = new Date(year, month - 1, day);
-            const endDate = new Date(year, month - 1, day);
-            
-            // Si des horaires sont définis, les utiliser
-            if (!isAllDay) {
-                const [startHour, startMinute] = startTime.split(':').map(Number);
-                const [endHour, endMinute] = endTime.split(':').map(Number);
-                
-                startDate.setHours(startHour, startMinute, 0, 0);
-                endDate.setHours(endHour, endMinute, 0, 0);
-                
-                // Si l'heure de fin est avant l'heure de début, on suppose que c'est le jour suivant
-                if (endDate < startDate) {
-                    endDate.setDate(endDate.getDate() + 1);
-                }
-            } else {
-                // Événement toute la journée
-                endDate.setDate(endDate.getDate() + 1); // Fin = jour suivant à minuit
-            }
-            
-            // Formater les dates pour ICS (format: YYYYMMDDTHHMMSSZ)
-            const formatDate = (date) => {
-                return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-            };
-            
-            // Récupérer la description et les horaires du code
-            const description = getCodeDescription(code) || `Code: ${code}`;
-            const hours = getCodeHours(code) || 'Toute la journée';
-            
-            // Ajouter l'événement au calendrier
-            icsContent = icsContent.concat([
-                "BEGIN:VEVENT",
-                `UID:${Date.now()}-${day}-${code}@calendrier-chal.app`,
-                `DTSTAMP:${formatDate(new Date())}`,
-                `DTSTART:${formatDate(startDate)}`,
-                `DTEND:${formatDate(endDate)}`,
-                `SUMMARY:${code} - ${personName}`,
-                `DESCRIPTION:${description}\\nHoraires: ${hours}`,
-                "END:VEVENT"
-            ]);
-        });
-        
-        // Finaliser le calendrier
-        icsContent.push("END:VCALENDAR");
-        
-        // Créer le fichier ICS
-        const icsData = icsContent.join("\r\n");
-        const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8' });
-        
-        // Créer un lien de téléchargement
-        const fileName = `planning_${personName.replace(/\s+/g, '_')}_${month}_${year}.ics`;
-        const downloadLink = document.createElement('a');
-        downloadLink.href = URL.createObjectURL(blob);
-        downloadLink.download = fileName;
-        
-        // Ajouter le lien au document, cliquer dessus, puis le supprimer
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
-        
-        showToast("Exportation ICS réussie", "success");
-    } catch (error) {
-        console.error("Erreur lors de l'exportation ICS:", error);
-        showToast("Erreur lors de l'exportation ICS", "error");
-    }
-}
-
-/**
- * Exporte les résultats au format JSON
- */
-function exportToJSON() {
-    console.log("Export au format JSON");
-    // Implémentation à venir
-    showToast("Export JSON en cours de développement", "info");
-}
-
-/**
- * Copie les résultats dans le presse-papier
- */
-function copyToClipboard() {
-    console.log("Copie dans le presse-papier");
-    // Implémentation à venir
-    showToast("Copie en cours de développement", "info");
-}
-
-/**
- * Affiche/masque la section des paramètres
- */
-function toggleSettings() {
-    console.log("Basculement de la section des paramètres");
-    
-    if (elements.settingsSection) {
-        const isHidden = elements.settingsSection.hidden;
-        
-        // Masquer toutes les sections
-        if (elements.uploadSection) elements.uploadSection.hidden = !isHidden;
-        if (elements.processingSection) elements.processingSection.hidden = !isHidden;
-        if (elements.resultsSection) elements.resultsSection.hidden = !isHidden;
-        
-        // Afficher/masquer la section des paramètres
-        elements.settingsSection.hidden = !isHidden;
-        
-        // Charger les paramètres actuels
-        if (!isHidden) {
-            const apiSettings = loadApiSettings();
-            if (elements.apiKeyInput) {
-                elements.apiKeyInput.value = apiSettings.apiKey || '';
-            }
-        }
-    }
-}
-
-/**
- * Enregistre les paramètres
- */
-function saveSettings() {
-    console.log("Enregistrement des paramètres");
-    
-    if (elements.apiKeyInput) {
-        const apiKey = elements.apiKeyInput.value.trim();
-        
-        // Enregistrer la clé API
-        localStorage.setItem('apiSettings', JSON.stringify({
-            apiKey: apiKey,
-            model: 'mistral-ocr-latest',
-            strictMode: true
-        }));
-        
-        // Afficher un message de confirmation
-        showToast("Paramètres enregistrés avec succès", "success");
-        
-        // Revenir à l'écran principal
-        toggleSettings();
-    }
-}
-
-/**
- * Charge les paramètres de l'API
- * @returns {Object} - Paramètres de l'API
- */
-function loadApiSettings() {
-    const apiSettings = {
-        apiKey: '',
-        model: 'mistral-ocr-latest',
-        strictMode: true
-    };
-    
-    // Charger depuis appSettings (nouvelle méthode)
-    const appSettingsJson = localStorage.getItem('appSettings');
-    if (appSettingsJson) {
-        try {
-            const appSettings = JSON.parse(appSettingsJson);
-            if (appSettings && appSettings.apiSettings) {
-                apiSettings.apiKey = appSettings.apiSettings.apiKey || '';
-                apiSettings.model = appSettings.apiSettings.model || 'mistral-ocr-latest';
-                apiSettings.strictMode = appSettings.apiSettings.strictMode !== false; // Par défaut à true
-                
-                console.log("Paramètres API chargés:", { 
-                    hasApiKey: !!apiSettings.apiKey, 
-                    model: apiSettings.model,
-                    strictMode: apiSettings.strictMode
-                });
-                
-                return apiSettings;
-            }
-        } catch (error) {
-            console.error('Erreur lors du chargement des paramètres API depuis appSettings:', error);
-        }
-    }
-    
-    // Essayer de charger depuis apiSettings (ancienne méthode)
-    const savedSettings = localStorage.getItem('apiSettings');
-    if (savedSettings) {
-        try {
-            const parsedSettings = JSON.parse(savedSettings);
-            apiSettings.apiKey = parsedSettings.apiKey || '';
-            apiSettings.model = parsedSettings.model || 'mistral-ocr-latest';
-            apiSettings.strictMode = parsedSettings.strictMode !== false; // Par défaut à true
-            
-            console.log("Paramètres API chargés (ancienne méthode):", { 
-                hasApiKey: !!apiSettings.apiKey, 
-                model: apiSettings.model,
-                strictMode: apiSettings.strictMode
-            });
-            
-            // Migrer vers appSettings
-            saveApiSettings(apiSettings);
-            
-            // Supprimer l'ancienne clé
-            localStorage.removeItem('apiSettings');
-            
-            return apiSettings;
-        } catch (error) {
-            console.error('Erreur lors du chargement des paramètres API:', error);
-        }
-    } else {
-        console.log("Aucun paramètre API trouvé, utilisation des valeurs par défaut");
-    }
-    
-    // Fallback sur la clé API stockée directement (pour la compatibilité)
-    if (!apiSettings.apiKey) {
-        const directApiKey = localStorage.getItem('mistralApiKey');
-        if (directApiKey) {
-            apiSettings.apiKey = directApiKey;
-            console.log("Clé API chargée depuis le stockage direct");
-            
-            // Migrer vers appSettings
-            saveApiSettings(apiSettings);
-            
-            // Supprimer l'ancienne clé
-            localStorage.removeItem('mistralApiKey');
-        }
-    }
-    
-    return apiSettings;
-}
-
-/**
- * Sauvegarde les paramètres de l'API
- * @param {Object} apiSettings - Paramètres de l'API à sauvegarder
- */
-function saveApiSettings(apiSettings) {
-    // Charger les paramètres actuels
-    let appSettings = {};
-    const appSettingsJson = localStorage.getItem('appSettings');
-    if (appSettingsJson) {
-        try {
-            appSettings = JSON.parse(appSettingsJson);
-        } catch (error) {
-            console.error('Erreur lors du chargement de appSettings:', error);
-        }
-    }
-    
-    // Mettre à jour les paramètres API
-    appSettings.apiSettings = apiSettings;
-    
-    // Sauvegarder
-    localStorage.setItem('appSettings', JSON.stringify(appSettings));
-    console.log("Paramètres API sauvegardés dans appSettings");
-}
-
-/**
- * Affiche un message toast
- * @param {string} message - Message à afficher
- * @param {string} type - Type de message (success, error, info)
- */
-function showToast(message, type = 'info') {
-    console.log(`Toast (${type}): ${message}`);
-    
-    if (!elements.toastContainer || !elements.toastMessage) {
-        console.error("Éléments toast non trouvés");
-        return;
-    }
-    
-    // Définir le message
-    elements.toastMessage.textContent = message;
-    
-    // Définir la classe en fonction du type
-    elements.toastContainer.className = 'toast';
-    elements.toastContainer.classList.add(`toast-${type}`);
-    
-    // Afficher le toast
-    elements.toastContainer.hidden = false;
-    
-    // Masquer le toast après 3 secondes
-    setTimeout(() => {
-        elements.toastContainer.hidden = true;
-    }, 3000);
-}
-
-/**
- * Calcule la similarité entre deux chaînes
- * 
- * @param {string} str1 - Première chaîne
- * @param {string} str2 - Deuxième chaîne
- * @returns {number} - Score de similarité entre 0 et 1
- */
-function calculateStringSimilarity(str1, str2) {
-    // Normaliser les chaînes
-    str1 = str1.toUpperCase().trim();
-    str2 = str2.toUpperCase().trim();
-    
-    // Si les chaînes sont identiques
-    if (str1 === str2) return 1.0;
-    
-    // Si l'une des chaînes est vide
-    if (str1.length === 0 || str2.length === 0) return 0.0;
-    
-    // Calculer la distance de Levenshtein
-    const distance = levenshteinDistance(str1, str2);
-    
-    // Calculer la similarité
-    const maxLength = Math.max(str1.length, str2.length);
-    return 1 - distance / maxLength;
-}
-
-/**
- * Calcule la distance de Levenshtein entre deux chaînes
- * 
- * @param {string} str1 - Première chaîne
- * @param {string} str2 - Deuxième chaîne
- * @returns {number} - Distance de Levenshtein
- */
-function levenshteinDistance(str1, str2) {
-    const m = str1.length;
-    const n = str2.length;
-    
-    // Créer une matrice de taille (m+1) x (n+1)
-    const d = Array(m + 1).fill().map(() => Array(n + 1).fill(0));
-    
-    // Initialiser la première colonne et la première ligne
-    for (let i = 0; i <= m; i++) d[i][0] = i;
-    for (let j = 0; j <= n; j++) d[0][j] = j;
-    
-    // Remplir la matrice
-    for (let j = 1; j <= n; j++) {
-        for (let i = 1; i <= m; i++) {
-            const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
-            d[i][j] = Math.min(
-                d[i - 1][j] + 1,      // suppression
-                d[i][j - 1] + 1,      // insertion
-                d[i - 1][j - 1] + cost // substitution
-            );
-        }
-    }
-    
-    return d[m][n];
-}
-
-/**
- * Vérifie si une chaîne est un code valide
- * @param {string} str - Code à vérifier
- * @returns {boolean} - True si le code est valide
- */
-function isValidCode(str) {
-    if (!str) return false;
-    
-    // Normaliser la chaîne
-    str = str.trim().toUpperCase();
-    
-    // Accepter tous les codes de 2 à 4 caractères alphanumériques
-    if (/^[A-Z0-9]{2,4}$/.test(str)) {
-        return true;
-    }
-    
-    // Vérifier si c'est un code connu dans les codes valides de l'application
-    if (appState.validCodes && appState.validCodes.includes(str)) {
-        return true;
-    }
-    
-    // Si aucun code valide n'est défini, accepter tous les codes non vides
-    if (!appState.validCodes || appState.validCodes.length === 0) {
-        return str.length > 0;
-    }
-    
-    return false;
-}
-
-// Charge les codes valides depuis le fichier de paramètres
-function loadCodesFromSettings() {
-    try {
-        // Essayer de charger les codes depuis le stockage local (appSettings)
-        const settingsJson = localStorage.getItem('appSettings');
-        if (settingsJson) {
-            const settings = JSON.parse(settingsJson);
-            if (settings && settings.codes) {
-                console.log("Codes chargés depuis appSettings:", Object.keys(settings.codes));
-                return settings.codes;
-            }
-        }
-        
-        // Si aucun code n'est trouvé dans appSettings, essayer de charger depuis le fichier JSON
-        return loadCodesFromJsonFile();
-    } catch (error) {
-        console.error("Erreur lors du chargement des codes:", error);
-        return getDefaultCodes();
-    }
-}
-
-// Charge les codes depuis le fichier JSON
-async function loadCodesFromJsonFile() {
-    try {
-        const response = await fetch('calendrier-chal-settings.json');
-        if (!response.ok) {
-            throw new Error('Fichier de paramètres non trouvé');
-        }
-        
-        const data = await response.json();
-        console.log("Fichier de paramètres chargé:", data);
-        
-        if (data.codes) {
-            // Sauvegarder les codes dans appSettings pour les futures utilisations
-            saveCodesInAppSettings(data.codes);
-            return data.codes;
-        }
-        
-        // Si le fichier JSON ne contient pas de codes, utiliser les codes par défaut
-        return getDefaultCodes();
-    } catch (error) {
-        console.warn("Erreur lors du chargement du fichier de paramètres:", error);
-        return getDefaultCodes();
-    }
-}
-
-// Sauvegarde les codes dans appSettings
-function saveCodesInAppSettings(codes) {
-    // Charger les paramètres actuels
-    let appSettings = {};
-    const appSettingsJson = localStorage.getItem('appSettings');
-    if (appSettingsJson) {
-        try {
-            appSettings = JSON.parse(appSettingsJson);
-        } catch (error) {
-            console.error('Erreur lors du chargement de appSettings:', error);
-        }
-    }
-    
-    // Mettre à jour les codes
-    appSettings.codes = codes;
-    
-    // Sauvegarder
-    localStorage.setItem('appSettings', JSON.stringify(appSettings));
-    console.log("Codes sauvegardés dans appSettings:", Object.keys(codes));
-}
-
-// Retourne les codes par défaut
-function getDefaultCodes() {
-    return {
-        "J8S": {
-            "description": "J8S",
-            "startTime": "08:00",
-            "endTime": "16:18",
-            "color": "#fffb00"
-        },
-        "JOD": {
-            "description": "JOD",
-            "startTime": "08:00",
-            "endTime": "17:00",
-            "color": "#fffb00"
-        },
-        "M7M": {
-            "description": "M7M",
-            "startTime": "07:45",
-            "endTime": "15:15",
-            "color": "#fffb00"
-        },
-        "N7H": {
-            "description": "N7H",
-            "startTime": "19:15",
-            "endTime": "07:30",
-            "color": "#0433ff"
-        },
-        "RH": {
-            "description": "RH",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#ff40ff"
-        },
-        "RTT": {
-            "description": "RTT",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#ff40ff"
-        },
-        "CAA": {
-            "description": "CAA",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#00f900"
-        },
-        "FH": {
-            "description": "FH",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#00f900"
-        },
-        "J2B": {
-            "description": "J2B",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#fffb00"
-        },
-        "J9B": {
-            "description": "J9B",
-            "startTime": "09:30",
-            "endTime": "15:30",
-            "color": "#fffb00"
-        },
-        "JPX": {
-            "description": "JPX",
-            "startTime": "07:15",
-            "endTime": "19:30",
-            "color": "#fffb00"
-        },
-        "MAL": {
-            "description": "MAL",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#ff2600"
-        },
-        "RC": {
-            "description": "RC",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#ff40ff"
-        },
-        "RHD": {
-            "description": "RHD",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#ff40ff"
-        },
-        "SD-": {
-            "description": "SD-",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#00f900"
-        },
-        "FE": {
-            "description": "FE",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#00f900"
-        },
-        "GTI": {
-            "description": "GTI",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#ff40ff"
-        },
-        "J8D": {
-            "description": "J8D",
-            "startTime": "08:00",
-            "endTime": "15:30",
-            "color": "#fffb00"
-        },
-        "J9D": {
-            "description": "J9D",
-            "startTime": "09:00",
-            "endTime": "16:30",
-            "color": "#fffb00"
-        },
-        "JPY": {
-            "description": "JPY",
-            "startTime": "07:15",
-            "endTime": "17:15",
-            "color": "#fffb00"
-        },
-        "MAT": {
-            "description": "MAT",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#ff2600"
-        },
-        "RD": {
-            "description": "RD",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#ff40ff"
-        },
-        "RN": {
-            "description": "RN",
-            "startTime": "19:15",
-            "endTime": "07:30",
-            "color": "#ff40ff"
-        },
-        "SFC": {
-            "description": "SFC",
-            "startTime": "08:15",
-            "endTime": "18:00",
-            "color": "#fffb00"
-        },
-        "C9E": {
-            "description": "C9E",
-            "startTime": "08:30",
-            "endTime": "18:00",
-            "color": "#ff9300"
-        },
-        "J9L": {
-            "description": "J9L",
-            "startTime": "09:30",
-            "endTime": "17:30",
-            "color": "#fffb00"
-        },
-        "M7E": {
-            "description": "M7E",
-            "startTime": "07:30",
-            "endTime": "15:00",
-            "color": "#fffb00"
-        },
-        "CA": {
-            "description": "CA",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#00f900"
-        },
-        "JCS": {
-            "description": "JCS",
-            "startTime": "08:00",
-            "endTime": "16:00",
-            "color": "#fffb00"
-        },
-        "RTP": {
-            "description": "RTP",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#ff40ff"
-        },
-        "FGU": {
-            "description": "FGU",
-            "startTime": "08:00",
-            "endTime": "17:30",
-            "color": "#00f900"
-        },
-        "HS-": {
-            "description": "HS-",
-            "startTime": "09:00",
-            "endTime": "17:00",
-            "color": "#00f900"
-        },
-        "J9F": {
-            "description": "J9F",
-            "startTime": "09:00",
-            "endTime": "18:00",
-            "color": "#fffb00"
-        },
-        "I8C": {
-            "description": "I8C",
-            "startTime": "08:15",
-            "endTime": "15:45",
-            "color": "#fffb00"
-        },
-        "N2C": {
-            "description": "N2C",
-            "startTime": "19:15",
-            "endTime": "05:00",
-            "color": "#0433ff"
-        }
-    };
-}
-
-// Charge les codes depuis le stockage local
-async function loadCodes() {
-    try {
-        // Essayer de charger les codes depuis appSettings
-        const appSettingsJson = localStorage.getItem('appSettings');
-        if (appSettingsJson) {
-            const appSettings = JSON.parse(appSettingsJson);
-            if (appSettings && appSettings.codes && Object.keys(appSettings.codes).length > 0) {
-                console.log("Codes chargés depuis appSettings:", Object.keys(appSettings.codes));
-                appState.codesData = appSettings.codes;
-                appState.validCodes = Object.keys(appSettings.codes);
-                return appSettings.codes;
-            }
-        }
-        
-        // Si aucun code n'est trouvé dans appSettings, essayer de charger depuis le fichier JSON
-        const codes = await loadCodesFromJsonFile();
-        appState.codesData = codes;
-        appState.validCodes = Object.keys(codes);
-        return codes;
-    } catch (error) {
-        console.error("Erreur lors du chargement des codes:", error);
-        const defaultCodes = getDefaultCodes();
-        appState.codesData = defaultCodes;
-        appState.validCodes = Object.keys(defaultCodes);
-        return defaultCodes;
-    }
-}
-
-/**
- * Met à jour toutes les listes déroulantes de codes
- */
-function updateCodeDropdowns() {
-    const codeSelects = document.querySelectorAll('.code-select');
-    if (codeSelects && codeSelects.length > 0) {
-        codeSelects.forEach(select => {
-            const selectedValue = select.value;
-            select.innerHTML = '';
-            
-            // Ajouter chaque code valide comme option
-            appState.validCodes.forEach(validCode => {
-                const option = document.createElement('option');
-                option.value = validCode;
-                option.textContent = validCode;
-                
-                // Sélectionner le code actuel si possible
-                if (validCode === selectedValue) {
-                    option.selected = true;
-                }
-                
-                select.appendChild(option);
-            });
-        });
-    }
-}
-
-// Initialise l'application
-async function initApp() {
-    console.log("Initialisation de l'application");
-    
-    // Initialiser les éléments DOM
-    initElements();
-    console.log("Éléments DOM initialisés");
-    
-    // Initialiser l'état de l'application
-    initAppState();
-    console.log("État de l'application initialisé");
-    
-    // Mettre à jour l'état du formulaire
-    updateFormState();
-    
-    // Initialiser les gestionnaires d'événements
-    initEventListeners();
-    console.log("Gestionnaires d'événements initialisés");
-    
-    // Charger les paramètres API
-    await loadApiSettings();
-    console.log("Paramètres API chargés:", appState.apiSettings);
-    
-    // Charger les codes
-    await loadCodes();
-    console.log("Données des codes chargées:", appState.codesData);
-    console.log(`${appState.validCodes.length} codes valides chargés:`, appState.validCodes);
-    
-    // Créer la légende des codes
-    if (elements.codeLegendContainer) {
-        elements.codeLegendContainer.innerHTML = '';
-        const codeLegend = createCodeLegend();
-        elements.codeLegendContainer.appendChild(codeLegend);
-        console.log("Légende des codes créée");
-    }
-    
-    // Mettre à jour les listes déroulantes de codes
-    updateCodeDropdowns();
-    console.log("Listes déroulantes de codes mises à jour");
-    
-    // Écouter les événements de mise à jour des codes depuis la page des paramètres
-    document.addEventListener('codesUpdated', handleCodesUpdated);
-    
-    console.log("Application initialisée avec succès");
-    
-    // Charger le fichier de paramètres
-    loadSettingsFile();
-}
-
-/**
- * Gère les mises à jour des codes depuis la page des paramètres
- * @param {CustomEvent} event - L'événement personnalisé
- */
-async function handleCodesUpdated(event) {
-    console.log("Mise à jour des codes détectée:", event.detail);
-    
-    // Recharger les codes
-    await loadCodes();
-    
-    // Mettre à jour la légende des codes
-    if (elements.codeLegendContainer) {
-        elements.codeLegendContainer.innerHTML = '';
-        const codeLegend = createCodeLegend();
-        elements.codeLegendContainer.appendChild(codeLegend);
-    }
-    
-    // Mettre à jour les listes déroulantes de codes
-    updateCodeDropdowns();
-    
-    console.log("Codes mis à jour avec succès");
+    // Mettre à jour l'état de l'application
+    appState.personName = personName;
+    appState.month = elements.monthSelect ? parseInt(elements.monthSelect.value) : new Date().getMonth() + 1;
+    appState.year = elements.yearInput ? parseInt(elements.yearInput.value) : new Date().getFullYear();
 }
 
 /**
@@ -1741,442 +161,313 @@ async function handleCodesUpdated(event) {
  * @async
  */
 async function analyzeSchedule() {
-    console.log("Analyse du planning...");
+    console.log("Analyse du planning");
     
-    // Vérifier si un fichier a été chargé
+    // Vérifier si une image est chargée
     if (!appState.imageFile) {
-        showToast("Veuillez d'abord charger une image", "error");
+        showToast("Veuillez sélectionner une image", "error");
         return;
     }
     
     // Vérifier si un nom a été saisi
-    let personName = '';
-    
-    if (elements.personNameInput && elements.personNameInput.value.trim()) {
-        personName = elements.personNameInput.value.trim();
-    }
-    
-    if (!personName) {
+    if (!appState.personName) {
         showToast("Veuillez saisir un nom", "error");
         return;
     }
-    
-    // Récupérer le mois et l'année
-    const month = parseInt(elements.monthSelect.value);
-    const year = parseInt(elements.yearInput.value);
-    
-    if (isNaN(month) || isNaN(year)) {
-        showToast("Veuillez saisir un mois et une année valides", "error");
-        return;
-    }
-    
-    // Mettre à jour l'état de l'application
-    appState.personName = personName;
-    appState.month = month;
-    appState.year = year;
-    appState.isAnalyzing = true;
     
     // Afficher l'indicateur de chargement
     if (elements.loadingIndicator) {
         elements.loadingIndicator.hidden = false;
     }
     
+    // Masquer le contenu des résultats pendant le chargement
     if (elements.resultsContent) {
         elements.resultsContent.hidden = true;
     }
     
+    // Afficher la section des résultats
     if (elements.resultsSection) {
         elements.resultsSection.hidden = false;
     }
     
+    // Mettre à jour l'état de l'application
+    appState.isAnalyzing = true;
+    
     try {
-        // Charger les paramètres de l'API directement depuis appSettings
-        const appSettingsJson = localStorage.getItem('appSettings');
-        let apiKey = '';
-        let model = 'mistral-ocr-latest';
-        let strictMode = true;
+        // Récupérer les paramètres API
+        const apiSettings = await loadApiSettings();
         
-        if (appSettingsJson) {
-            try {
-                const appSettings = JSON.parse(appSettingsJson);
-                if (appSettings && appSettings.apiSettings) {
-                    apiKey = appSettings.apiSettings.apiKey || '';
-                    model = appSettings.apiSettings.model || 'mistral-ocr-latest';
-                    strictMode = appSettings.apiSettings.strictMode !== false;
-                    
-                    console.log("Paramètres API chargés pour l'analyse:", {
-                        hasApiKey: !!apiKey,
-                        model: model,
-                        strictMode: strictMode
-                    });
-                }
-            } catch (error) {
-                console.error('Erreur lors du chargement des paramètres API depuis appSettings:', error);
+        // Vérifier si une clé API est disponible
+        if (!apiSettings.apiKey) {
+            showToast("Aucune clé API configurée. Veuillez configurer une clé API dans les paramètres.", "error");
+            
+            // Masquer l'indicateur de chargement
+            if (elements.loadingIndicator) {
+                elements.loadingIndicator.hidden = true;
             }
+            
+            appState.isAnalyzing = false;
+            return;
         }
         
-        // Si aucune clé API n'est trouvée, essayer les méthodes de secours
-        if (!apiKey) {
-            // Essayer de charger depuis apiSettings (ancienne méthode)
-            const savedSettings = localStorage.getItem('apiSettings');
-            if (savedSettings) {
-                try {
-                    const parsedSettings = JSON.parse(savedSettings);
-                    apiKey = parsedSettings.apiKey || '';
+        // Analyser l'image avec l'API Mistral
+        console.log("Analyse de l'image avec l'API Mistral");
+        const ocrResult = await analyzeImageWithMistral(appState.imageFile, apiSettings.apiKey);
+        
+        if (!ocrResult || !ocrResult.text) {
+            throw new Error("Erreur lors de l'analyse de l'image");
+        }
+        
+        console.log("Texte OCR extrait:", ocrResult.text);
+        
+        // Tenter d'extraire les données structurées
+        let result = null;
+        let structuredData = null;
+        
+        try {
+            // Essayer d'extraire les données structurées si une clé API est disponible
+            if (apiSettings.apiKey) {
+                console.log("Tentative d'extraction des données structurées");
+                structuredData = await extractStructuredDataFromOCR(ocrResult.text, apiSettings.apiKey);
+                
+                if (structuredData && Array.isArray(structuredData)) {
+                    console.log("Données structurées extraites:", structuredData);
                     
-                    if (apiKey) {
-                        console.log("Clé API chargée depuis apiSettings (ancienne méthode)");
+                    // Rechercher la personne dans les données structurées
+                    const personData = findPersonInStructuredData(structuredData, appState.personName);
+                    
+                    if (personData) {
+                        console.log("Personne trouvée dans les données structurées:", personData);
+                        
+                        // Convertir les données structurées en résultat
+                        result = convertStructuredDataToResult(personData, appState.month, appState.year, ocrResult.text);
+                    } else {
+                        console.log("Personne non trouvée dans les données structurées, utilisation de l'analyse classique");
                     }
-                } catch (error) {
-                    console.error('Erreur lors du chargement de la clé API:', error);
                 }
             }
-            
-            // Essayer de charger depuis mistralApiKey (ancienne méthode)
-            if (!apiKey) {
-                const directApiKey = localStorage.getItem('mistralApiKey');
-                if (directApiKey) {
-                    apiKey = directApiKey;
-                    console.log("Clé API chargée depuis le stockage direct (ancienne méthode)");
-                }
-            }
-            
-            // Si une clé API a été trouvée par les méthodes de secours, la sauvegarder dans appSettings
-            if (apiKey) {
-                saveApiSettings({
-                    apiKey: apiKey,
-                    model: model,
-                    strictMode: strictMode
-                });
-            }
+        } catch (error) {
+            console.error("Erreur lors de l'extraction des données structurées:", error);
+            console.log("Utilisation de l'analyse classique comme fallback");
         }
         
-        // Analyser l'image avec Mistral OCR
-        console.log("Analyse de l'image avec Mistral OCR...");
-        console.log("Utilisation de la clé API:", apiKey ? "Présente" : "Absente");
-        const ocrResult = await analyzeImageWithMistralOCR(appState.imageFile, apiKey);
-        
-        if (!ocrResult || !ocrResult.success) {
-            throw new Error(ocrResult?.error || "Erreur lors de l'analyse OCR");
+        // Si les données structurées n'ont pas fonctionné, utiliser l'analyse classique
+        if (!result) {
+            console.log("Analyse classique du texte OCR");
+            result = analyzeOcrText(ocrResult.text, appState.personName, appState.month, appState.year);
         }
-        
-        console.log("Résultat OCR obtenu:", ocrResult);
-        
-        // Analyser le texte OCR pour la personne spécifique
-        console.log(`Analyse du texte OCR pour ${personName}...`);
-        const result = await analyzeOcrText(ocrResult.ocrText, personName, month, year);
         
         // Mettre à jour l'état de l'application
         appState.results = result;
-        appState.isAnalyzing = false;
-        
-        // S'assurer que le loader est masqué avant d'afficher les résultats
-        if (elements.loadingIndicator) {
-            elements.loadingIndicator.hidden = true;
-        }
         
         // Afficher les résultats
         displayResults(result);
         
+        // Masquer l'indicateur de chargement
+        if (elements.loadingIndicator) {
+            elements.loadingIndicator.hidden = true;
+        }
+        
+        // Afficher le contenu des résultats
+        if (elements.resultsContent) {
+            elements.resultsContent.hidden = false;
+        }
+        
         console.log("Analyse terminée avec succès");
-        showToast("Analyse terminée avec succès", "success");
     } catch (error) {
         console.error("Erreur lors de l'analyse:", error);
         
-        // Mettre à jour l'état de l'application
-        appState.isAnalyzing = false;
-        
         // Afficher un message d'erreur
-        showToast(`Erreur lors de l'analyse`, "error");
+        showToast("Erreur lors de l'analyse: " + error.message, "error");
         
         // Masquer l'indicateur de chargement
         if (elements.loadingIndicator) {
             elements.loadingIndicator.hidden = true;
         }
     } finally {
-        // S'assurer que le loader est toujours masqué, quoi qu'il arrive
-        if (elements.loadingIndicator) {
-            elements.loadingIndicator.hidden = true;
+        // Mettre à jour l'état de l'application
+        appState.isAnalyzing = false;
+    }
+}
+
+/**
+ * Recherche une personne dans les données structurées
+ * @param {Array} structuredData - Données structurées
+ * @param {string} personName - Nom de la personne à rechercher
+ * @returns {Object|null} - Données de la personne ou null si non trouvée
+ */
+function findPersonInStructuredData(structuredData, personName) {
+    console.log("Recherche de la personne dans les données structurées:", personName);
+    
+    // Convertir le nom recherché en minuscules pour une comparaison insensible à la casse
+    const searchName = personName.toLowerCase();
+    
+    // Parcourir les données structurées
+    for (const person of structuredData) {
+        // Vérifier si le nom de la personne est défini
+        if (person.name) {
+            // Convertir le nom de la personne en minuscules
+            const personNameLower = person.name.toLowerCase();
+            
+            // Vérifier si le nom correspond
+            if (personNameLower.includes(searchName) || searchName.includes(personNameLower)) {
+                console.log("Personne trouvée:", person.name);
+                return person;
+            }
         }
     }
+    
+    console.log("Personne non trouvée dans les données structurées");
+    return null;
+}
+
+/**
+ * Convertit les données structurées en résultat
+ * @param {Object} personData - Données de la personne
+ * @param {number} month - Mois (1-12)
+ * @param {number} year - Année
+ * @param {string} rawText - Texte brut OCR
+ * @returns {Object} - Résultat de l'analyse
+ */
+function convertStructuredDataToResult(personData, month, year, rawText) {
+    console.log("Conversion des données structurées en résultat");
+    
+    // Calculer le nombre de jours dans le mois
+    const daysInMonth = new Date(year, month, 0).getDate();
+    
+    // Créer un tableau de codes vides
+    const codes = Array(daysInMonth).fill('');
+    
+    // Remplir le tableau avec les codes de la personne
+    if (personData.codes && Array.isArray(personData.codes)) {
+        for (let i = 0; i < Math.min(personData.codes.length, daysInMonth); i++) {
+            const code = personData.codes[i];
+            
+            // Vérifier si le code est valide
+            if (code && isValidCode(code)) {
+                codes[i] = code;
+            } else if (code) {
+                // Essayer de trouver le code le plus similaire
+                const similarCode = findMostSimilarCode(code, appState.validCodes);
+                if (similarCode) {
+                    console.log(`Code corrigé: ${code} -> ${similarCode}`);
+                    codes[i] = similarCode;
+                } else {
+                    codes[i] = code; // Utiliser le code tel quel s'il n'y a pas de correction
+                }
+            }
+        }
+    }
+    
+    // Créer le résultat
+    return {
+        found: true,
+        name: personData.name,
+        codes: codes,
+        rawText: rawText,
+        month: month,
+        year: year
+    };
+}
+
+/**
+ * Initialise l'application
+ */
+async function initApp() {
+    console.log("Initialisation de l'application");
+    
+    // Initialiser les éléments DOM
+    initElements();
+    
+    // Initialiser l'état de l'application
+    initAppState();
+    
+    // Initialiser les gestionnaires d'événements
+    initEventListeners();
+    
+    // Charger les paramètres API
+    await loadApiSettings();
+    
+    // Charger les codes
+    await loadCodes();
+    
+    // Ajouter le bouton de saisie manuelle
+    addManualEntryButton();
+    
+    // Exposer les fonctions globalement pour les autres modules
+    window.appState = appState;
+    window.elements = elements;
+    window.showToast = showToast;
+    window.updateFormState = updateFormState;
+    window.isValidCode = isValidCode;
+    window.getCodeColor = getCodeColor;
+    window.getCodeDescription = getCodeDescription;
+    window.getCodeHours = getCodeHours;
+    window.findMostSimilarCode = findMostSimilarCode;
+    
+    console.log("Application initialisée");
+}
+
+/**
+ * Gère les mises à jour des codes depuis la page des paramètres
+ * @param {CustomEvent} event - L'événement personnalisé
+ */
+function handleCodesUpdated(event) {
+    console.log("Mise à jour des codes reçue:", event.detail);
+    
+    // Mettre à jour les codes dans l'application
+    if (event.detail && event.detail.codes) {
+        appState.validCodes = event.detail.codes;
+        appState.codesData = event.detail.codesData || {};
+        
+        // Mettre à jour les listes déroulantes de codes
+        updateCodeDropdowns();
+    }
+}
+
+/**
+ * Met à jour toutes les listes déroulantes de codes
+ */
+function updateCodeDropdowns() {
+    console.log("Mise à jour des listes déroulantes de codes");
+    
+    // Sélectionner toutes les listes déroulantes de codes
+    const codeDropdowns = document.querySelectorAll('.code-dropdown');
+    
+    // Parcourir les listes déroulantes
+    codeDropdowns.forEach(dropdown => {
+        // Sauvegarder la valeur sélectionnée
+        const selectedValue = dropdown.value;
+        
+        // Vider la liste déroulante
+        dropdown.innerHTML = '';
+        
+        // Ajouter l'option vide
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = '-- Sélectionner --';
+        dropdown.appendChild(emptyOption);
+        
+        // Ajouter les options pour chaque code
+        appState.validCodes.forEach(code => {
+            const option = document.createElement('option');
+            option.value = code;
+            option.textContent = `${code} - ${getCodeDescription(code)}`;
+            dropdown.appendChild(option);
+        });
+        
+        // Restaurer la valeur sélectionnée
+        dropdown.value = selectedValue;
+    });
 }
 
 // Initialise l'application
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM chargé, initialisation de l\'application...');
     
+    // Initialiser l'application
     initApp();
     
-    console.log("Application initialisée avec succès");
+    // Ajouter un écouteur d'événement pour les mises à jour des codes
+    document.addEventListener('codesUpdated', handleCodesUpdated);
 });
-
-// Ajoute un bouton pour permettre à l'utilisateur d'entrer manuellement les codes
-function addManualEntryButton() {
-    // Vérifier si le bouton existe déjà
-    if (document.getElementById('manual-entry-button')) {
-        return;
-    }
-    
-    // Créer le bouton
-    const manualEntryButton = document.createElement('button');
-    manualEntryButton.id = 'manual-entry-button';
-    manualEntryButton.className = 'button secondary-button';
-    manualEntryButton.textContent = 'Saisie manuelle des codes';
-    manualEntryButton.onclick = showManualEntryForm;
-    
-    // Ajouter le bouton après le bouton d'analyse
-    if (elements.analyzeButton && elements.analyzeButton.parentNode) {
-        elements.analyzeButton.parentNode.insertBefore(manualEntryButton, elements.analyzeButton.nextSibling);
-    }
-}
-
-// Affiche le formulaire de saisie manuelle des codes
-function showManualEntryForm() {
-    // Créer le formulaire s'il n'existe pas déjà
-    let manualEntryForm = document.getElementById('manual-entry-form');
-    
-    if (!manualEntryForm) {
-        manualEntryForm = document.createElement('div');
-        manualEntryForm.id = 'manual-entry-form';
-        manualEntryForm.className = 'manual-entry-form';
-        
-        // Créer le titre
-        const title = document.createElement('h3');
-        title.textContent = 'Saisie manuelle des codes';
-        manualEntryForm.appendChild(title);
-        
-        // Créer la description
-        const description = document.createElement('p');
-        description.textContent = 'Entrez les codes visibles dans l\'image, séparés par des virgules ou des espaces.';
-        manualEntryForm.appendChild(description);
-        
-        // Créer le champ de saisie
-        const input = document.createElement('textarea');
-        input.id = 'manual-codes-input';
-        input.placeholder = 'Exemple: JRD, RH, M7M, JRD, JRD, C9E, RH, RH, RH, RH, M7M, C9E, ...';
-        input.rows = 5;
-        manualEntryForm.appendChild(input);
-        
-        // Créer le bouton de validation
-        const submitButton = document.createElement('button');
-        submitButton.className = 'button primary-button';
-        submitButton.textContent = 'Valider les codes';
-        submitButton.onclick = processManualCodes;
-        manualEntryForm.appendChild(submitButton);
-        
-        // Créer le bouton d'annulation
-        const cancelButton = document.createElement('button');
-        cancelButton.className = 'button secondary-button';
-        cancelButton.textContent = 'Annuler';
-        cancelButton.onclick = () => {
-            manualEntryForm.style.display = 'none';
-        };
-        manualEntryForm.appendChild(cancelButton);
-        
-        // Ajouter le formulaire à la page
-        if (elements.uploadSection) {
-            elements.uploadSection.appendChild(manualEntryForm);
-        } else {
-            document.body.appendChild(manualEntryForm);
-        }
-    }
-    
-    // Afficher le formulaire
-    manualEntryForm.style.display = 'block';
-}
-
-// Traite les codes entrés manuellement par l'utilisateur
-function processManualCodes() {
-    // Récupérer les codes entrés par l'utilisateur
-    const input = document.getElementById('manual-codes-input');
-    
-    if (!input || !input.value.trim()) {
-        showToast('Veuillez entrer des codes', 'error');
-        return;
-    }
-    
-    // Récupérer le nom de la personne
-    let personName = '';
-    if (elements.personNameInput && elements.personNameInput.value.trim()) {
-        personName = elements.personNameInput.value.trim();
-    }
-    
-    if (!personName) {
-        showToast('Veuillez saisir un nom', 'error');
-        return;
-    }
-    
-    // Récupérer le mois et l'année
-    const month = parseInt(elements.monthSelect.value);
-    const year = parseInt(elements.yearInput.value);
-    
-    if (isNaN(month) || isNaN(year)) {
-        showToast('Veuillez saisir un mois et une année valides', 'error');
-        return;
-    }
-    
-    // Traiter les codes
-    const codesText = input.value.trim();
-    let codes = codesText.split(/[\s,;]+/).filter(code => code.trim() !== '');
-    
-    // Calculer le nombre de jours dans le mois
-    const daysInMonth = new Date(year, month, 0).getDate();
-    
-    // Compléter ou tronquer les codes si nécessaire
-    if (codes.length < daysInMonth) {
-        console.log(`Complétion des codes manquants (${codes.length} -> ${daysInMonth})`);
-        while (codes.length < daysInMonth) {
-            codes.push(''); // Code vide au lieu d'un code par défaut
-        }
-    } else if (codes.length > daysInMonth) {
-        console.log(`Troncature des codes excédentaires (${codes.length} -> ${daysInMonth})`);
-        codes.splice(daysInMonth);
-    }
-    
-    // Créer le résultat
-    const result = {
-        found: true,
-        name: personName,
-        codes: codes,
-        rawText: `Codes entrés manuellement: ${codesText}`,
-        month: month,
-        year: year,
-        manualEntry: true
-    };
-    
-    // Mettre à jour l'état de l'application
-    appState.results = result;
-    appState.personName = personName;
-    appState.month = month;
-    appState.year = year;
-    
-    // Afficher les résultats
-    displayResults(result);
-    
-    // Masquer le formulaire
-    const manualEntryForm = document.getElementById('manual-entry-form');
-    if (manualEntryForm) {
-        manualEntryForm.style.display = 'none';
-    }
-    
-    // Afficher un message de succès
-    showToast('Codes traités avec succès', 'success');
-}
-
-/**
- * Trouve le code le plus similaire dans une liste de codes valides
- * 
- * @param {string} code - Code à comparer
- * @param {string[]} validCodes - Liste des codes valides
- * @param {number} threshold - Seuil de similarité (0-1)
- * @returns {string|null} - Code le plus similaire ou null si aucun code ne dépasse le seuil
- */
-function findMostSimilarCode(code, validCodes, threshold = 0.5) {
-    if (!code || !validCodes || validCodes.length === 0) {
-        return null;
-    }
-    
-    // Normaliser le code
-    code = code.trim().toUpperCase();
-    
-    let maxSimilarity = 0;
-    let mostSimilarCode = null;
-    
-    for (const validCode of validCodes) {
-        const similarity = calculateStringSimilarity(code, validCode);
-        
-        if (similarity > maxSimilarity) {
-            maxSimilarity = similarity;
-            mostSimilarCode = validCode;
-        }
-    }
-    
-    // Retourner le code le plus similaire si la similarité dépasse le seuil
-    if (maxSimilarity >= threshold) {
-        return mostSimilarCode;
-    }
-    
-    return null;
-}
-
-/**
- * Charge le fichier de paramètres sans écraser les paramètres API existants
- */
-function loadSettingsFile() {
-    fetch('calendrier-chal-settings.json')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Fichier de paramètres non trouvé');
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Fichier de paramètres chargé:", data);
-            
-            // Vérifier si des codes existent déjà dans le localStorage
-            const appSettingsJson = localStorage.getItem('appSettings');
-            let appSettings = {};
-            let existingCodes = null;
-            
-            if (appSettingsJson) {
-                try {
-                    appSettings = JSON.parse(appSettingsJson);
-                    if (appSettings && appSettings.codes && Object.keys(appSettings.codes).length > 0) {
-                        existingCodes = appSettings.codes;
-                        console.log("Codes existants trouvés dans localStorage:", Object.keys(existingCodes).length);
-                    }
-                } catch (error) {
-                    console.error('Erreur lors du chargement de appSettings:', error);
-                }
-            }
-            
-            // Ne mettre à jour les codes que si aucun code n'existe dans le localStorage
-            if (data.codes && !existingCodes) {
-                console.log("Aucun code existant, utilisation des codes du fichier JSON");
-                
-                // Mettre à jour uniquement les codes, pas les paramètres API
-                appSettings.codes = data.codes;
-                
-                // Sauvegarder
-                localStorage.setItem('appSettings', JSON.stringify(appSettings));
-                console.log(`${Object.keys(data.codes).length} codes mis à jour depuis le fichier de paramètres`);
-                
-                // Mettre à jour les codes dans l'application
-                appState.codesData = data.codes;
-                appState.validCodes = Object.keys(data.codes);
-                
-                // Mettre à jour la légende des codes
-                if (elements.codeLegendContainer) {
-                    elements.codeLegendContainer.innerHTML = '';
-                    const codeLegend = createCodeLegend();
-                    elements.codeLegendContainer.appendChild(codeLegend);
-                }
-                
-                // Mettre à jour les listes déroulantes de codes
-                updateCodeDropdowns();
-            } else if (existingCodes) {
-                console.log("Codes existants conservés, ignorant les codes du fichier JSON");
-            }
-            
-            // Ne pas écraser les paramètres API existants si une clé API est déjà configurée
-            if (data.apiSettings) {
-                if (appSettingsJson) {
-                    try {
-                        if (appSettings && appSettings.apiSettings && appState.apiSettings.apiKey) {
-                            console.log("Paramètres API existants conservés (clé API déjà configurée)");
-                            return;
-                        }
-                    } catch (error) {
-                        console.error('Erreur lors du chargement de appSettings:', error);
-                    }
-                }
-                
-                // Si aucune clé API n'est configurée, utiliser celle du fichier de paramètres
-                saveApiSettings(data.apiSettings);
-                console.log("Paramètres API mis à jour depuis le fichier de paramètres");
-            }
-        })
-        .catch(error => {
-            console.warn("Erreur lors du chargement du fichier de paramètres:", error);
-        });
-}

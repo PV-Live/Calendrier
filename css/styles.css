@@ -1057,3 +1057,80 @@ select:focus {
     background-color: #795548;
     color: white;
 }
+
+/* Calendrier */
+.calendar-container {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+.calendar-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.calendar-table th,
+.calendar-table td {
+    border: 1px solid var(--medium-gray);
+    padding: 10px;
+    text-align: center;
+}
+
+.calendar-table th {
+    background-color: var(--primary-color);
+    color: var(--white);
+    font-weight: 500;
+}
+
+.calendar-table td {
+    height: 80px;
+    vertical-align: top;
+    position: relative;
+}
+
+.calendar-table .empty-cell {
+    background-color: var(--light-gray);
+}
+
+.day-number {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--text-color);
+}
+
+.day-code {
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    cursor: help;
+    text-align: center;
+    padding: 3px 5px;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.3);
+    display: inline-block;
+    min-width: 50px;
+}
+
+.code-dropdown {
+    width: 100%;
+    padding: 5px;
+    font-size: 12px;
+    border: 1px solid var(--medium-gray);
+    border-radius: 4px;
+}
+
+/* Export buttons */
+.export-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: flex-end;
+}
