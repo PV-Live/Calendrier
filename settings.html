@@ -95,22 +95,14 @@
             <div class="card">
                 <div class="card-header">
                     <h2>Paramètres API</h2>
-                    <p>Configurez les paramètres de l'API Mistral OCR</p>
+                    <p>Configurez les paramètres de l'API Google Vision</p>
                 </div>
                 
                 <form id="apiSettingsForm">
                     <div class="form-group">
-                        <label for="apiKeyInput">Clé API Mistral</label>
-                        <input type="password" id="apiKeyInput" placeholder="Entrez votre clé API Mistral">
-                        <small>Obtenez une clé sur <a href="https://console.mistral.ai/" target="_blank">console.mistral.ai</a></small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="modelSelect">Modèle OCR</label>
-                        <select id="modelSelect">
-                            <option value="mistral-ocr-latest">mistral-ocr-latest (Recommandé)</option>
-                        </select>
-                        <small>Seul le modèle latest est supporté par l'API Mistral OCR</small>
+                        <label for="apiKeyInput">Clé API Google Vision</label>
+                        <input type="password" id="apiKeyInput" placeholder="Entrez votre clé API Google Vision">
+                        <small>Obtenez une clé sur <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a></small>
                     </div>
                     
                     <div class="form-group">

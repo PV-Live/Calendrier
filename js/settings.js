@@ -19,7 +19,6 @@ const settingsState = {
     currentEditingCode: null,
     apiSettings: {
         apiKey: '',
-        model: 'mistral-ocr-medium',
         strictMode: true // Mode strict activé par défaut
     }
 };
@@ -48,7 +47,6 @@ const elements = {
     // Configuration API
     apiSettingsForm: document.getElementById('apiSettingsForm'),
     apiKeyInput: document.getElementById('apiKeyInput'),
-    modelSelect: document.getElementById('modelSelect'),
     strictModeCheckbox: document.getElementById('strictModeCheckbox'),
     
     // Import/Export
@@ -213,10 +211,6 @@ function loadCodesFromJsonFile() {
                     elements.apiKeyInput.value = settingsState.apiSettings.apiKey;
                 }
                 
-                if (elements.modelSelect && settingsState.apiSettings.model) {
-                    elements.modelSelect.value = settingsState.apiSettings.model;
-                }
-                
                 if (elements.strictModeCheckbox) {
                     elements.strictModeCheckbox.checked = settingsState.apiSettings.strictMode;
                 }
@@ -305,103 +299,85 @@ function getDefaultCodes() {
  * Charge les paramètres de l'API depuis le stockage local
  */
 function loadApiSettings() {
-    console.log("Début du chargement des paramètres API");
+    console.log("Chargement des paramètres API");
     
-    // Essayer d'abord de charger depuis appSettings (nouvelle méthode)
+    // Initialiser les paramètres par défaut
+    settingsState.apiSettings = {
+        apiKey: '',
+        strictMode: true
+    };
+    
+    // Essayer de charger depuis appSettings (méthode principale)
     const appSettingsJson = localStorage.getItem('appSettings');
     if (appSettingsJson) {
         try {
             const appSettings = JSON.parse(appSettingsJson);
-            console.log("appSettings trouvé dans localStorage:", {
-                hasApiSettings: !!appSettings.apiSettings,
-                hasCodes: !!appSettings.codes
-            });
-            
             if (appSettings && appSettings.apiSettings) {
                 settingsState.apiSettings.apiKey = appSettings.apiSettings.apiKey || '';
-                settingsState.apiSettings.model = appSettings.apiSettings.model || 'mistral-ocr-medium';
                 settingsState.apiSettings.strictMode = appSettings.apiSettings.strictMode !== false;
-                
-                // Mettre à jour les champs du formulaire
-                elements.apiKeyInput.value = settingsState.apiSettings.apiKey;
-                elements.modelSelect.value = settingsState.apiSettings.model;
-                elements.strictModeCheckbox.checked = settingsState.apiSettings.strictMode;
                 
                 console.log("Paramètres API chargés depuis appSettings:", {
                     apiKeyPresent: !!settingsState.apiSettings.apiKey,
-                    model: settingsState.apiSettings.model,
                     strictMode: settingsState.apiSettings.strictMode
                 });
-                return;
             }
         } catch (error) {
             console.error('Erreur lors du chargement des paramètres API depuis appSettings:', error);
         }
-    } else {
-        console.log("Aucun appSettings trouvé dans localStorage");
     }
     
-    // Essayer ensuite de charger depuis apiSettings (ancienne méthode)
-    const savedSettings = localStorage.getItem('apiSettings');
-    if (savedSettings) {
-        try {
-            const parsedSettings = JSON.parse(savedSettings);
-            settingsState.apiSettings.apiKey = parsedSettings.apiKey || '';
-            settingsState.apiSettings.model = parsedSettings.model || 'mistral-ocr-medium';
-            settingsState.apiSettings.strictMode = parsedSettings.strictMode !== false;
-            
-            // Mettre à jour les champs du formulaire
-            elements.apiKeyInput.value = settingsState.apiSettings.apiKey;
-            elements.modelSelect.value = settingsState.apiSettings.model;
-            elements.strictModeCheckbox.checked = settingsState.apiSettings.strictMode;
-            
-            console.log("Paramètres API chargés depuis apiSettings (ancienne méthode):", {
-                apiKeyPresent: !!settingsState.apiSettings.apiKey,
-                model: settingsState.apiSettings.model,
-                strictMode: settingsState.apiSettings.strictMode
-            });
-            
-            // Migrer vers appSettings
-            saveApiSettings();
-            
-            // Supprimer l'ancienne clé
-            localStorage.removeItem('apiSettings');
-            
-            return;
-        } catch (error) {
-            console.error('Erreur lors du chargement des paramètres API:', error);
+    // Si aucune clé API n'est trouvée, essayer les méthodes de secours
+    if (!settingsState.apiSettings.apiKey) {
+        // Essayer de charger depuis apiSettings (ancienne méthode)
+        const savedSettings = localStorage.getItem('apiSettings');
+        if (savedSettings) {
+            try {
+                const parsedSettings = JSON.parse(savedSettings);
+                settingsState.apiSettings.apiKey = parsedSettings.apiKey || '';
+                
+                if (settingsState.apiSettings.apiKey) {
+                    console.log("Clé API chargée depuis apiSettings (ancienne méthode)");
+                }
+            } catch (error) {
+                console.error('Erreur lors du chargement de la clé API:', error);
+            }
         }
-    } else {
-        console.log("Aucun apiSettings trouvé dans localStorage");
+        
+        // Essayer de charger depuis googleApiKey (nouvelle méthode)
+        if (!settingsState.apiSettings.apiKey) {
+            const directApiKey = localStorage.getItem('googleApiKey');
+            if (directApiKey) {
+                settingsState.apiSettings.apiKey = directApiKey;
+                console.log("Clé API chargée depuis le stockage direct (nouvelle méthode)");
+            }
+        }
     }
     
-    // Fallback sur la clé API stockée directement (pour la compatibilité)
-    const directApiKey = localStorage.getItem('mistralApiKey');
-    if (directApiKey) {
-        settingsState.apiSettings.apiKey = directApiKey;
-        elements.apiKeyInput.value = directApiKey;
-        console.log("Clé API chargée depuis le stockage direct (ancienne méthode):", {
-            apiKeyPresent: !!directApiKey
-        });
-        
-        // Migrer vers appSettings
-        saveApiSettings();
-        
-        // Ne pas supprimer l'ancienne clé pour la compatibilité
-        // localStorage.removeItem('mistralApiKey');
-    } else {
-        console.log("Aucune clé API trouvée dans le stockage direct");
+    // Mettre à jour l'interface utilisateur
+    if (elements.apiKeyInput) {
+        elements.apiKeyInput.value = settingsState.apiSettings.apiKey;
     }
+    
+    if (elements.strictModeCheckbox) {
+        elements.strictModeCheckbox.checked = settingsState.apiSettings.strictMode;
+    }
+    
+    console.log("Chargement des paramètres API terminé");
 }
 
 /**
  * Sauvegarde les paramètres de l'API dans le stockage local
  */
-function saveApiSettings() {
+function saveApiSettings(settings) {
+    // Si des paramètres sont fournis, les utiliser
+    if (settings) {
+        settingsState.apiSettings.apiKey = settings.apiKey || settingsState.apiSettings.apiKey;
+        settingsState.apiSettings.strictMode = settings.strictMode !== undefined ? settings.strictMode : settingsState.apiSettings.strictMode;
+    }
+    
     console.log("Début de la sauvegarde des paramètres API");
     console.log("Paramètres API à sauvegarder:", {
         apiKeyPresent: !!settingsState.apiSettings.apiKey,
-        model: settingsState.apiSettings.model,
         strictMode: settingsState.apiSettings.strictMode
     });
     
@@ -428,7 +404,7 @@ function saveApiSettings() {
     console.log("Paramètres API sauvegardés dans appSettings");
     
     // Sauvegarder également dans le stockage direct pour la compatibilité
-    localStorage.setItem('mistralApiKey', settingsState.apiSettings.apiKey);
+    localStorage.setItem('googleApiKey', settingsState.apiSettings.apiKey);
     console.log("Clé API sauvegardée également dans le stockage direct (pour compatibilité)");
 }
 
@@ -674,27 +650,23 @@ function handleDeleteCode() {
 
 /**
  * Gère la soumission du formulaire d'API
+ * @param {Event} apiFormEvent - Événement de soumission du formulaire
  */
 function handleApiFormSubmit(apiFormEvent) {
     apiFormEvent.preventDefault();
     
-    console.log("Soumission du formulaire API");
-    
     // Récupérer les valeurs du formulaire
     const apiKey = elements.apiKeyInput.value.trim();
-    const model = elements.modelSelect.value;
     const strictMode = elements.strictModeCheckbox.checked;
     
     console.log("Paramètres API à sauvegarder:", {
         apiKeyPresent: !!apiKey,
-        model,
         strictMode
     });
     
-    // Mettre à jour les paramètres
+    // Mettre à jour l'état
     settingsState.apiSettings = {
         apiKey,
-        model,
         strictMode
     };
     
@@ -702,7 +674,7 @@ function handleApiFormSubmit(apiFormEvent) {
     saveApiSettings();
     
     // Afficher un message de confirmation
-    showToast('Paramètres API enregistrés avec succès');
+    showToast("Paramètres API sauvegardés avec succès", "success");
 }
 
 /**
@@ -713,7 +685,6 @@ function exportSettings() {
     const exportData = {
         codes: settingsState.codes,
         apiSettings: {
-            model: settingsState.apiSettings.model,
             strictMode: settingsState.apiSettings.strictMode
             // Ne pas exporter la clé API pour des raisons de sécurité
         },
@@ -762,9 +733,9 @@ function importSettings(event) {
             saveCodes();
             
             // Importer les paramètres API (sauf la clé)
-            if (importData.apiSettings && importData.apiSettings.model) {
-                settingsState.apiSettings.model = importData.apiSettings.model;
-                elements.modelSelect.value = importData.apiSettings.model;
+            if (importData.apiSettings && importData.apiSettings.strictMode) {
+                settingsState.apiSettings.strictMode = importData.apiSettings.strictMode;
+                elements.strictModeCheckbox.checked = importData.apiSettings.strictMode;
                 saveApiSettings();
             }
             
@@ -789,7 +760,7 @@ function importSettings(event) {
 /**
  * Affiche un message toast
  */
-function showToast(message) {
+function showToast(message, type) {
     elements.toastMessage.textContent = message;
     elements.toast.hidden = false;
     

@@ -60,7 +60,6 @@ async function analyzeSchedule() {
         // Charger les paramètres de l'API directement depuis appSettings
         const appSettingsJson = localStorage.getItem('appSettings');
         let apiKey = '';
-        let model = 'mistral-ocr-latest';
         let strictMode = true;
         
         if (appSettingsJson) {
@@ -68,12 +67,10 @@ async function analyzeSchedule() {
                 const appSettings = JSON.parse(appSettingsJson);
                 if (appSettings && appSettings.apiSettings) {
                     apiKey = appSettings.apiSettings.apiKey || '';
-                    model = appSettings.apiSettings.model || 'mistral-ocr-latest';
                     strictMode = appSettings.apiSettings.strictMode !== false;
                     
                     console.log("Paramètres API chargés pour l'analyse:", {
                         hasApiKey: !!apiKey,
-                        model: model,
                         strictMode: strictMode
                     });
                 }
@@ -99,12 +96,12 @@ async function analyzeSchedule() {
                 }
             }
             
-            // Essayer de charger depuis mistralApiKey (ancienne méthode)
+            // Essayer de charger depuis googleApiKey (nouvelle méthode)
             if (!apiKey) {
-                const directApiKey = localStorage.getItem('mistralApiKey');
+                const directApiKey = localStorage.getItem('googleApiKey');
                 if (directApiKey) {
                     apiKey = directApiKey;
-                    console.log("Clé API chargée depuis le stockage direct (ancienne méthode)");
+                    console.log("Clé API chargée depuis le stockage direct (nouvelle méthode)");
                 }
             }
             
@@ -112,16 +109,15 @@ async function analyzeSchedule() {
             if (apiKey) {
                 saveApiSettings({
                     apiKey: apiKey,
-                    model: model,
                     strictMode: strictMode
                 });
             }
         }
         
-        // Analyser l'image avec Mistral OCR
-        console.log("Analyse de l'image avec Mistral OCR...");
+        // Analyser l'image avec Google Vision
+        console.log("Analyse de l'image avec Google Vision...");
         console.log("Utilisation de la clé API:", apiKey ? "Présente" : "Absente");
-        const ocrResult = await analyzeImageWithMistralOCR(appState.imageFile, apiKey);
+        const ocrResult = await analyzeImageWithGoogleVision(appState.imageFile, apiKey);
         
         if (!ocrResult || !ocrResult.success) {
             throw new Error(ocrResult?.error || "Erreur lors de l'analyse OCR");
