@@ -77,17 +77,26 @@
 
             <!-- Section des résultats -->
             <div class="card results-section" id="resultsSection" hidden>
-                <h2>Résultats de l'analyse</h2>
+                <h2>Résultats</h2>
                 
-                <!-- Indicateur de chargement -->
-                <div class="loader" id="loadingIndicator" hidden>
-                    <div class="spinner"></div>
-                    <p>Analyse en cours...</p>
+                <!-- Résultat de l'analyse OCR -->
+                <div class="ocr-result-section" id="ocrResultSection" hidden>
+                    <div class="card-section">
+                        <h3>Résultat Analyse IA</h3>
+                        <p class="ocr-warning">Attention le résultat peut comporter des erreurs.</p>
+                        <div class="ocr-result-container">
+                            <textarea id="ocrResultText" class="ocr-result-text" readonly></textarea>
+                            <div id="personLineContainer"></div>
+                        </div>
+                        <div class="button-group">
+                            <button id="applyOcrCodesButton" class="button button-primary">Appliquer les codes</button>
+                        </div>
+                    </div>
                 </div>
                 
                 <div id="resultsContent">
                     <div class="results-header">
-                        <h3>Planning pour <span id="personNamesList"></span></h3>
+                        <h3><span id="personNamesList"></span></h3>
                     </div>
                     
                     <div id="calendarContainer" class="calendar-container">

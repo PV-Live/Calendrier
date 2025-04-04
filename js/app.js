@@ -77,6 +77,12 @@ function initElements() {
         calendarContainer: document.getElementById('calendarContainer'),
         exportButtons: document.getElementById('exportButtons'),
         
+        // Section de résultat OCR
+        ocrResultSection: document.getElementById('ocrResultSection'),
+        ocrResultText: document.getElementById('ocrResultText'),
+        applyOcrCodesButton: document.getElementById('applyOcrCodesButton'),
+        personLineContainer: document.getElementById('personLineContainer'),
+        
         // Paramètres
         apiKeyInput: document.getElementById('apiKeyInput'),
         saveSettingsButton: document.getElementById('saveSettingsButton'),

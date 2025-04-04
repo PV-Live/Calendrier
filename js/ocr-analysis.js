@@ -41,129 +41,161 @@ async function analyzeSchedule() {
     appState.personName = personName;
     appState.month = month;
     appState.year = year;
-    appState.isAnalyzing = true;
+    
+    // Afficher la section des résultats
+    if (elements.resultsSection) {
+        elements.resultsSection.hidden = false;
+    }
+    
+    // Masquer la section des résultats précédents
+    if (elements.resultsContent) {
+        elements.resultsContent.hidden = true;
+    }
     
     // Afficher l'indicateur de chargement
     if (elements.loadingIndicator) {
         elements.loadingIndicator.hidden = false;
     }
     
-    if (elements.resultsContent) {
-        elements.resultsContent.hidden = true;
-    }
-    
-    if (elements.resultsSection) {
-        elements.resultsSection.hidden = false;
-    }
-    
     try {
-        // Charger les paramètres de l'API directement depuis appSettings
-        const appSettingsJson = localStorage.getItem('appSettings');
-        let apiKey = '';
-        let strictMode = true;
+        // Charger les paramètres API
+        console.log("Chargement des paramètres API pour l'analyse...");
+        await loadApiSettings();
         
-        if (appSettingsJson) {
-            try {
-                const appSettings = JSON.parse(appSettingsJson);
-                if (appSettings && appSettings.apiSettings) {
-                    apiKey = appSettings.apiSettings.apiKey || '';
-                    strictMode = appSettings.apiSettings.strictMode !== false;
-                    
-                    console.log("Paramètres API chargés pour l'analyse:", {
-                        hasApiKey: !!apiKey,
-                        strictMode: strictMode
-                    });
-                }
-            } catch (error) {
-                console.error('Erreur lors du chargement des paramètres API depuis appSettings:', error);
-            }
-        }
+        const apiKey = appState.apiSettings && appState.apiSettings.apiKey;
+        const strictMode = appState.apiSettings && appState.apiSettings.strictMode !== false;
         
-        // Si aucune clé API n'est trouvée, essayer les méthodes de secours
+        console.log("Paramètres API chargés pour l'analyse:", {
+            hasApiKey: !!apiKey,
+            strictMode
+        });
+        
         if (!apiKey) {
-            // Essayer de charger depuis apiSettings (ancienne méthode)
-            const savedSettings = localStorage.getItem('apiSettings');
-            if (savedSettings) {
-                try {
-                    const parsedSettings = JSON.parse(savedSettings);
-                    apiKey = parsedSettings.apiKey || '';
-                    
-                    if (apiKey) {
-                        console.log("Clé API chargée depuis apiSettings (ancienne méthode)");
-                    }
-                } catch (error) {
-                    console.error('Erreur lors du chargement de la clé API:', error);
-                }
-            }
-            
-            // Essayer de charger depuis googleApiKey (nouvelle méthode)
-            if (!apiKey) {
-                const directApiKey = localStorage.getItem('googleApiKey');
-                if (directApiKey) {
-                    apiKey = directApiKey;
-                    console.log("Clé API chargée depuis le stockage direct (nouvelle méthode)");
-                }
-            }
-            
-            // Si une clé API a été trouvée par les méthodes de secours, la sauvegarder dans appSettings
-            if (apiKey) {
-                saveApiSettings({
-                    apiKey: apiKey,
-                    strictMode: strictMode
-                });
-            }
+            showToast("Veuillez configurer votre clé API dans les paramètres", "error");
+            return;
         }
         
         // Analyser l'image avec Google Vision
         console.log("Analyse de l'image avec Google Vision...");
-        console.log("Utilisation de la clé API:", apiKey ? "Présente" : "Absente");
+        console.log("Utilisation de la clé API:", apiKey ? "Présente" : "Manquante");
+        
         const ocrResult = await analyzeImageWithGoogleVision(appState.imageFile, apiKey);
         
-        if (!ocrResult || !ocrResult.success) {
-            throw new Error(ocrResult?.error || "Erreur lors de l'analyse OCR");
+        if (!ocrResult.success) {
+            showToast("Erreur lors de l'analyse de l'image: " + ocrResult.error, "error");
+            return;
         }
         
         console.log("Résultat OCR obtenu:", ocrResult);
         
-        // Analyser le texte OCR pour la personne spécifique
+        // Analyser le texte OCR
         console.log(`Analyse du texte OCR pour ${personName}...`);
         const result = await analyzeOcrText(ocrResult.ocrText, personName, month, year);
         
-        // S'assurer que le résultat a la propriété found définie à true
-        if (result && !result.found && result.codes && result.codes.some(code => code)) {
-            console.log("Résultats trouvés mais la propriété found est false, correction...");
-            result.found = true;
-        }
-        
-        // Mettre à jour l'état de l'application
+        // Mettre à jour l'état de l'application avec les résultats
         appState.results = result;
-        appState.isAnalyzing = false;
-        
-        // S'assurer que le loader est bien masqué avant d'afficher les résultats
-        if (elements.loadingIndicator) {
-            elements.loadingIndicator.hidden = true;
-        }
-        
-        // Afficher les résultats
-        displayResults(result);
-        
-        console.log("Analyse terminée avec succès");
-        showToast("Analyse terminée avec succès", "success");
-    } catch (error) {
-        console.error("Erreur lors de l'analyse:", error);
-        
-        // Mettre à jour l'état de l'application
-        appState.isAnalyzing = false;
-        
-        // Afficher un message d'erreur
-        showToast(`Erreur lors de l'analyse`, "error");
         
         // Masquer l'indicateur de chargement
         if (elements.loadingIndicator) {
             elements.loadingIndicator.hidden = true;
         }
-    } finally {
-        // S'assurer que le loader est toujours masqué, quoi qu'il arrive
+        
+        if (result.found) {
+            // Afficher les résultats directement dans le calendrier
+            displayResults(result);
+            
+            // Afficher également les codes dans la section "Résultat de l'analyse IA"
+            if (elements.resultsSection) {
+                // Créer ou mettre à jour la section "Résultat de l'analyse IA"
+                let resultSection = document.getElementById('iaResultSection');
+                
+                if (!resultSection) {
+                    // Créer la section si elle n'existe pas
+                    resultSection = document.createElement('div');
+                    resultSection.id = 'iaResultSection';
+                    resultSection.className = 'card-section';
+                    
+                    // Créer le titre
+                    const title = document.createElement('h3');
+                    title.textContent = 'Analyse IA';
+                    resultSection.appendChild(title);
+                    
+                    // Créer l'avertissement
+                    const warning = document.createElement('p');
+                    warning.className = 'ocr-warning';
+                    warning.textContent = 'Attention le résultat peut comporter des erreurs.';
+                    resultSection.appendChild(warning);
+                    
+                    // Créer le conteneur pour les codes
+                    const codesContainer = document.createElement('div');
+                    codesContainer.className = 'ocr-result-container';
+                    
+                    // Créer la zone de texte pour les codes (modifiable)
+                    const codesTextarea = document.createElement('textarea');
+                    codesTextarea.id = 'iaResultText';
+                    codesTextarea.className = 'ocr-result-text';
+                    codesTextarea.readOnly = false; // Rendre modifiable
+                    codesContainer.appendChild(codesTextarea);
+                    
+                    resultSection.appendChild(codesContainer);
+                    
+                    // Créer le bouton de mise à jour
+                    const buttonContainer = document.createElement('div');
+                    buttonContainer.className = 'button-group';
+                    
+                    const updateButton = document.createElement('button');
+                    updateButton.id = 'updateCodesButton';
+                    updateButton.className = 'button button-primary';
+                    updateButton.textContent = 'Mettre à jour';
+                    buttonContainer.appendChild(updateButton);
+                    
+                    resultSection.appendChild(buttonContainer);
+                    
+                    // Ajouter la section avant le calendrier
+                    const calendarContainer = document.getElementById('calendarContainer');
+                    if (calendarContainer && calendarContainer.parentNode) {
+                        calendarContainer.parentNode.insertBefore(resultSection, calendarContainer);
+                    }
+                    
+                    // Ajouter l'événement de clic au bouton de mise à jour
+                    updateButton.addEventListener('click', function() {
+                        // Récupérer les codes modifiés
+                        const modifiedCodes = codesTextarea.value.trim().split(/\s+/);
+                        
+                        // Mettre à jour le résultat
+                        result.codes = modifiedCodes;
+                        
+                        // Mettre à jour l'état de l'application
+                        appState.results = result;
+                        
+                        // Afficher les résultats mis à jour
+                        displayResults(result);
+                        
+                        // Afficher un message de confirmation
+                        showToast("Codes mis à jour avec succès", "success");
+                    });
+                }
+                
+                // Mettre à jour le contenu de la zone de texte
+                const codesTextarea = document.getElementById('iaResultText');
+                if (codesTextarea) {
+                    // Formater les codes pour l'affichage (séparés par des espaces)
+                    const formattedCodes = result.codes.join(' ');
+                    codesTextarea.value = formattedCodes;
+                }
+            }
+        } else {
+            showToast(`Aucun résultat trouvé pour ${personName}`, "error");
+        }
+        
+        console.log("Analyse terminée avec succès");
+        showToast("Analyse terminée avec succès", "success");
+        
+    } catch (error) {
+        console.error("Erreur lors de l'analyse du planning:", error);
+        showToast("Erreur lors de l'analyse: " + error.message, "error");
+        
+        // Masquer l'indicateur de chargement en cas d'erreur
         if (elements.loadingIndicator) {
             elements.loadingIndicator.hidden = true;
         }
@@ -185,7 +217,7 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
     ocrText = cleanOcrText(ocrText);
     
     // Vérifier si le texte est au format Markdown (tableau)
-    const isMarkdownTable = ocrText.includes('|');
+    const isMarkdownTable = ocrText.includes('|') && (ocrText.includes('---') || ocrText.includes('**'));
     
     // Calculer le nombre de jours dans le mois
     const daysInMonth = new Date(year, month, 0).getDate();
@@ -197,16 +229,20 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
         codes: Array(daysInMonth).fill(''),
         rawText: ocrText,
         month: month,
-        year: year
+        year: year,
+        personLine: '' // Nouvelle propriété pour stocker la ligne de la personne
     };
     
     try {
+        // Normaliser le nom de la personne pour la recherche (convertir en majuscules et supprimer les accents)
+        const normalizedPersonName = personName.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        
+        // Diviser le texte en lignes
+        const lines = ocrText.split('\n').filter(line => line.trim() !== '');
+        
         // Traiter le texte OCR en fonction du format
         if (isMarkdownTable) {
             console.log("Format détecté: Tableau Markdown");
-            
-            // Diviser le texte en lignes
-            const lines = ocrText.split('\n').filter(line => line.trim() !== '');
             
             // Chercher la ligne contenant le nom de la personne
             let personLine = null;
@@ -214,9 +250,10 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
             
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
+                const normalizedLine = line.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                 
                 // Vérifier si la ligne contient le nom de la personne
-                if (line.toLowerCase().includes(personName.toLowerCase())) {
+                if (normalizedLine.includes(normalizedPersonName)) {
                     personLine = line;
                     personLineIndex = i;
                     break;
@@ -225,6 +262,7 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
             
             if (personLine) {
                 console.log(`Ligne trouvée pour ${personName}:`, personLine);
+                result.personLine = personLine;
                 
                 // Extraire les codes de la ligne
                 const cells = personLine.split('|').map(cell => cell.trim());
@@ -286,31 +324,84 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
         } else {
             console.log("Format détecté: Texte brut");
             
-            // Diviser le texte en lignes
-            const lines = ocrText.split('\n').filter(line => line.trim() !== '');
-            
             // Chercher la ligne contenant le nom de la personne
             let personLineIndex = -1;
+            let personLine = "";
             
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
+                const normalizedLine = line.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                 
                 // Vérifier si la ligne contient le nom de la personne
-                if (line.toLowerCase().includes(personName.toLowerCase())) {
+                if (normalizedLine.includes(normalizedPersonName)) {
                     personLineIndex = i;
+                    personLine = line;
+                    console.log(`Ligne trouvée pour ${personName} à l'index ${personLineIndex}: ${line}`);
                     break;
                 }
             }
             
             if (personLineIndex >= 0) {
-                console.log(`Ligne trouvée pour ${personName} à l'index ${personLineIndex}`);
+                // Stocker la ligne complète de la personne
+                result.personLine = personLine;
                 
-                // Extraire les codes des lignes suivantes
+                // Extraire les codes de la ligne de la personne et des lignes suivantes
                 const codes = [];
                 
-                // Parcourir les lignes suivantes pour extraire les codes
+                // Récupérer d'abord les codes sur la ligne de la personne
+                // (après le nom et prénom)
+                const personLineParts = personLine.split(/\s+/);
+                
+                // Ignorer le nom et le prénom (généralement les premiers mots)
+                // et chercher des codes valides dans le reste de la ligne
+                let skipWords = 0;
+                
+                // Déterminer combien de mots à sauter (nom et prénom)
+                for (let i = 0; i < personLineParts.length; i++) {
+                    const normalizedPart = personLineParts[i].toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    if (normalizedPersonName.includes(normalizedPart)) {
+                        skipWords = i + 1;
+                    }
+                }
+                
+                // Chercher des codes dans le reste de la ligne
+                for (let i = skipWords; i < personLineParts.length; i++) {
+                    const word = personLineParts[i].trim();
+                    const cleanWord = word.replace(/[^A-Za-z0-9]/g, '');
+                    
+                    // Ignorer les pourcentages et les mots trop courts
+                    if (cleanWord.includes('%') || cleanWord.length < 2) {
+                        continue;
+                    }
+                    
+                    // Vérifier si le mot est un code valide
+                    if (isValidCode(cleanWord)) {
+                        codes.push(cleanWord);
+                    } else if (cleanWord.length >= 2 && cleanWord.length <= 4) {
+                        // Essayer de trouver un code similaire
+                        const similarCode = findMostSimilarCode(cleanWord, appState.validCodes);
+                        
+                        if (similarCode) {
+                            console.log(`Code corrigé: ${cleanWord} -> ${similarCode}`);
+                            codes.push(similarCode);
+                        }
+                    }
+                }
+                
+                // Parcourir les lignes suivantes pour extraire plus de codes
                 for (let i = personLineIndex + 1; i < lines.length && codes.length < daysInMonth; i++) {
                     const line = lines[i];
+                    
+                    // Si on trouve une autre personne, arrêter l'extraction
+                    if (i > personLineIndex + 3) {  // Vérifier après quelques lignes
+                        const normalizedLine = line.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        // Vérifier si la ligne contient un nom de personne (généralement suivi de "SF" ou d'un pourcentage)
+                        if ((normalizedLine.includes("SF") || normalizedLine.includes("%")) && 
+                            !normalizedLine.includes(normalizedPersonName)) {
+                            console.log(`Détection d'une autre personne à la ligne ${i}, arrêt de l'extraction`);
+                            break;
+                        }
+                    }
                     
                     // Diviser la ligne en mots
                     const words = line.split(/\s+/);
@@ -319,6 +410,11 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
                     for (const word of words) {
                         // Nettoyer le mot
                         const cleanWord = word.replace(/[^A-Za-z0-9]/g, '');
+                        
+                        // Ignorer les pourcentages et les mots trop courts
+                        if (cleanWord.includes('%') || cleanWord.length < 2) {
+                            continue;
+                        }
                         
                         // Vérifier si le mot est un code valide
                         if (isValidCode(cleanWord)) {

@@ -11,13 +11,35 @@
 function isValidCode(str) {
     if (!str) return false;
     
-    // Vérifier si le code est dans la liste des codes valides
-    if (appState.validCodes && appState.validCodes.length > 0) {
-        return appState.validCodes.includes(str.trim().toUpperCase());
+    // Nettoyer le code
+    const code = str.trim().toUpperCase();
+    
+    // Vérifier si le code a un format valide (2-4 caractères alphanumériques)
+    const isValidFormat = /^[A-Z0-9]{2,4}$/.test(code);
+    
+    // Si le code n'a pas un format valide, il n'est pas valide
+    if (!isValidFormat) {
+        return false;
     }
     
-    // Si aucune liste de codes valides n'est définie, accepter tous les codes non vides
-    return str.trim() !== '';
+    // Vérifier si le code est dans la liste des codes valides
+    if (appState.validCodes && appState.validCodes.length > 0) {
+        // Accepter le code s'il est dans la liste des codes valides
+        if (appState.validCodes.includes(code)) {
+            return true;
+        }
+        
+        // Si le mode strict est activé, n'accepter que les codes de la liste
+        if (appState.apiSettings && appState.apiSettings.strictMode) {
+            return false;
+        }
+        
+        // En mode non strict, accepter tous les codes ayant un format valide
+        return true;
+    }
+    
+    // Si aucune liste de codes valides n'est définie, accepter tous les codes ayant un format valide
+    return true;
 }
 
 /**
