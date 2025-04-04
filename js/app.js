@@ -4,19 +4,38 @@
  */
 
 // État de l'application
-const appState = {
-    imageFile: null,
-    fileName: '',
-    personName: '',
-    month: new Date().getMonth() + 1, // Mois actuel (1-12)
-    year: new Date().getFullYear(),
-    isAnalyzing: false,
-    results: null,
-    codeLegend: {},
-    extractedNames: [], // Nouveau: liste des noms extraits de l'image
-    validCodes: [], // Liste des codes valides
-    codesData: {} // Données complètes des codes
-};
+// Note: appState est déjà déclaré dans core.js, nous étendons ses propriétés ici
+// au lieu de redéclarer la variable
+if (typeof appState === 'undefined') {
+    window.appState = {
+        imageFile: null,
+        fileName: '',
+        personName: '',
+        month: new Date().getMonth() + 1, // Mois actuel (1-12)
+        year: new Date().getFullYear(),
+        isAnalyzing: false,
+        results: null,
+        codeLegend: {},
+        extractedNames: [], // Nouveau: liste des noms extraits de l'image
+        validCodes: [], // Liste des codes valides
+        codesData: {} // Données complètes des codes
+    };
+} else {
+    // Étendre l'objet appState existant avec les propriétés nécessaires
+    Object.assign(appState, {
+        imageFile: appState.imageFile || null,
+        fileName: appState.fileName || '',
+        personName: appState.personName || '',
+        month: appState.month || new Date().getMonth() + 1,
+        year: appState.year || new Date().getFullYear(),
+        isAnalyzing: appState.isAnalyzing || false,
+        results: appState.results || null,
+        codeLegend: appState.codeLegend || {},
+        extractedNames: appState.extractedNames || [],
+        validCodes: appState.validCodes || [],
+        codesData: appState.codesData || {}
+    });
+}
 
 // Éléments DOM
 let elements = {};
@@ -448,8 +467,11 @@ function updateCodeDropdowns() {
         emptyOption.textContent = '-- Sélectionner --';
         dropdown.appendChild(emptyOption);
         
+        // Trier les codes par ordre alphabétique
+        const sortedCodes = [...appState.validCodes].sort();
+        
         // Ajouter les options pour chaque code
-        appState.validCodes.forEach(code => {
+        sortedCodes.forEach(code => {
             const option = document.createElement('option');
             option.value = code;
             option.textContent = `${code} - ${getCodeDescription(code)}`;

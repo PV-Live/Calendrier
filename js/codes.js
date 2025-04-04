@@ -191,18 +191,19 @@ function updateCodeDropdowns() {
         emptyOption.textContent = '-- Sélectionner --';
         dropdown.appendChild(emptyOption);
         
+        // Trier les codes par ordre alphabétique
+        const sortedCodes = [...appState.validCodes].sort();
+        
         // Ajouter les options pour chaque code
-        appState.validCodes.forEach(code => {
+        sortedCodes.forEach(code => {
             const option = document.createElement('option');
             option.value = code;
             option.textContent = `${code} - ${getCodeDescription(code)}`;
             dropdown.appendChild(option);
         });
         
-        // Restaurer la valeur
-        if (currentValue && appState.validCodes.includes(currentValue)) {
-            dropdown.value = currentValue;
-        }
+        // Restaurer la valeur sélectionnée
+        dropdown.value = currentValue;
     });
 }
 

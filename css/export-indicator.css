@@ -1,0 +1,32 @@
+/* Style pour l'indicateur d'exportation */
+.export-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 10px;
+    font-size: 14px;
+    min-width: 24px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    color: white;
+}
+
+.exportable {
+    background-color: #7ac142; /* Vert */
+}
+
+.not-exportable {
+    background-color: #e74c3c; /* Rouge */
+}
+
+/* Style pour la mise en page des éléments de code */
+.code-item {
+    display: flex;
+    align-items: center;
+}
+
+.code-hours {
+    margin-left: auto;
+    margin-right: 10px;
+}

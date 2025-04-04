@@ -133,6 +133,12 @@ async function analyzeSchedule() {
         console.log(`Analyse du texte OCR pour ${personName}...`);
         const result = await analyzeOcrText(ocrResult.ocrText, personName, month, year);
         
+        // S'assurer que le résultat a la propriété found définie à true
+        if (result && !result.found && result.codes && result.codes.some(code => code)) {
+            console.log("Résultats trouvés mais la propriété found est false, correction...");
+            result.found = true;
+        }
+        
         // Mettre à jour l'état de l'application
         appState.results = result;
         appState.isAnalyzing = false;

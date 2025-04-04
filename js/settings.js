@@ -40,6 +40,7 @@ const elements = {
     startTimeInput: document.getElementById('startTimeInput'),
     endTimeInput: document.getElementById('endTimeInput'),
     colorInput: document.getElementById('colorInput'),
+    exportableCheckbox: document.getElementById('exportableCheckbox'),
     saveCodeBtn: document.getElementById('saveCodeBtn'),
     cancelEditBtn: document.getElementById('cancelEditBtn'),
     deleteCodeBtn: document.getElementById('deleteCodeBtn'),
@@ -526,6 +527,7 @@ function editCode(code) {
     elements.startTimeInput.value = codeData.startTime || '09:00';
     elements.endTimeInput.value = codeData.endTime || '17:00';
     elements.colorInput.value = codeData.color || '#4285f4';
+    elements.exportableCheckbox.checked = codeData.exportable || false;
     
     // Afficher le bouton de suppression
     elements.deleteCodeBtn.style.display = 'inline-block';
@@ -545,6 +547,7 @@ function resetCodeEditor() {
     elements.startTimeInput.value = '09:00';
     elements.endTimeInput.value = '17:00';
     elements.colorInput.value = '#4285f4';
+    elements.exportableCheckbox.checked = false;
     
     // Mettre à jour le titre
     elements.editorTitle.textContent = 'Ajouter un nouveau code';
@@ -565,6 +568,7 @@ function handleCodeFormSubmit(codeFormSubmitEvent) {
     const startTime = elements.startTimeInput.value;
     const endTime = elements.endTimeInput.value;
     const color = elements.colorInput.value;
+    const exportable = elements.exportableCheckbox.checked;
     
     // Valider les entrées
     if (!code) {
@@ -604,7 +608,8 @@ function handleCodeFormSubmit(codeFormSubmitEvent) {
         description,
         startTime,
         endTime,
-        color
+        color,
+        exportable
     };
     
     // Sauvegarder les codes
