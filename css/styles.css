@@ -594,6 +594,17 @@ footer {
     background-color: rgba(66, 133, 244, 0.05);
 }
 
+.code-item.active {
+    background-color: rgba(66, 133, 244, 0.1);
+    border-left: 3px solid var(--primary-color);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.code-item.active .code-text strong {
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
 .color-indicator {
     width: 16px;
     height: 16px;
@@ -1357,4 +1368,113 @@ select:focus {
     font-size: 0.9rem;
     resize: vertical;
     background-color: var(--light-gray);
+}
+
+/* Styles pour les cellules qui ne seront pas exportées */
+.not-exported {
+    position: relative;
+    overflow: hidden;
+}
+
+.not-exported::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: repeating-linear-gradient(
+        45deg,
+        rgba(0, 0, 0, 0.1),
+        rgba(0, 0, 0, 0.1) 10px,
+        rgba(0, 0, 0, 0) 10px,
+        rgba(0, 0, 0, 0) 20px
+    );
+    pointer-events: none; /* Pour permettre les clics à travers */
+    z-index: 1;
+}
+
+/* Style pour la case à cocher d'exportation */
+.export-checkbox-container {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    z-index: 2;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-radius: 3px;
+    padding: 2px;
+}
+
+.export-checkbox {
+    margin: 0;
+    cursor: pointer;
+}
+
+.export-checkbox-label {
+    font-size: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Message informatif pour la clé API */
+.api-info-message {
+    background-color: rgba(66, 133, 244, 0.1);
+    border-left: 4px solid var(--primary-color);
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 0.9rem;
+    color: var(--text-color);
+    line-height: 1.5;
+}
+
+.api-info-message p {
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+}
+
+.info-icon {
+    margin-right: 8px;
+    font-style: normal;
+}
+
+.settings-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.settings-link:hover {
+    text-decoration: underline;
+    color: var(--primary-dark);
+}
+
+/* Style pour le message du mode strict */
+.mode-strict-info {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.mode-strict-icon {
+    margin-right: 8px;
+    font-size: 1.2rem;
+}
+
+.info-text {
+    background-color: rgba(52, 168, 83, 0.1);
+    border-left: 4px solid var(--secondary-color);
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 16px 0;
+}
+
+.info-text small {
+    display: block;
+    margin-top: 4px;
+    color: var(--dark-gray);
 }

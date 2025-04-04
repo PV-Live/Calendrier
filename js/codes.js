@@ -128,7 +128,9 @@ function getDefaultCodes() {
         "JRD": {
             "description": "Journée Régulière de Disponibilité",
             "color": "#FFC107",
-            "hours": 8
+            "hours": 8,
+            "startTime": "09:00",
+            "endTime": "17:00"
         },
         "M7M": {
             "description": "Matin 7h",
@@ -143,7 +145,10 @@ function getDefaultCodes() {
         "N10M": {
             "description": "Nuit 10h",
             "color": "#607D8B",
-            "hours": 10
+            "hours": 10,
+            "startTime": "21:00",
+            "endTime": "07:00",
+            "isOvernight": true
         },
         "J8M": {
             "description": "Jour 8h",
@@ -163,7 +168,18 @@ function getDefaultCodes() {
         "N12M": {
             "description": "Nuit 12h",
             "color": "#009688",
-            "hours": 12
+            "hours": 12,
+            "startTime": "19:00",
+            "endTime": "07:00",
+            "isOvernight": true
+        },
+        "N7H": {
+            "description": "Nuit 7 Heures",
+            "color": "#3F51B5",
+            "hours": 12.25,
+            "startTime": "19:15",
+            "endTime": "07:30",
+            "isOvernight": true
         }
     };
 }
@@ -396,6 +412,25 @@ function findMostSimilarCode(code, validCodes, threshold = 0.5) {
 }
 
 /**
+ * Détermine si un code doit être exporté dans le calendrier ICS
+ * Utilise la propriété exportable de chaque code définie dans les paramètres
+ * @param {string} code - Code à vérifier
+ * @returns {boolean} - True si le code doit être exporté
+ */
+function shouldExportCode(code) {
+    if (!code) return false;
+    
+    // Récupérer les données du code
+    const codeData = appState.codesData[code];
+    
+    // Si le code n'existe pas dans les données, ne pas l'exporter
+    if (!codeData) return false;
+    
+    // Utiliser la propriété exportable si elle existe, sinon true par défaut
+    return codeData.exportable !== undefined ? codeData.exportable : true;
+}
+
+/**
  * Charge les paramètres API depuis le stockage local
  * @returns {Promise<void>}
  */
@@ -505,3 +540,4 @@ window.calculateStringSimilarity = calculateStringSimilarity;
 window.findMostSimilarCode = findMostSimilarCode;
 window.loadApiSettings = loadApiSettings;
 window.saveApiSettings = saveApiSettings;
+window.shouldExportCode = shouldExportCode;

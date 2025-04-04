@@ -140,7 +140,11 @@ function initEventListeners() {
     
     // Gestionnaires pour les boutons d'exportation
     if (elements.exportIcsButton) {
-        elements.exportIcsButton.addEventListener('click', exportToICS);
+        elements.exportIcsButton.addEventListener('click', function() {
+            console.log("=== BOUTON EXPORTER ICS ACTIVÉ ===");
+            console.log("Appel de la fonction exportToICS()");
+            exportToICS();
+        });
     }
     
     if (elements.exportJsonButton) {

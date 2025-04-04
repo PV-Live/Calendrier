@@ -435,6 +435,12 @@ function renderCodeList() {
             const codeData = settingsState.codes[code];
             const codeItem = document.createElement('div');
             codeItem.className = 'code-item';
+            
+            // Ajouter la classe 'active' si c'est le code en cours d'édition
+            if (code === settingsState.currentEditingCode) {
+                codeItem.classList.add('active');
+            }
+            
             codeItem.dataset.code = code;
             
             // Ajouter un indicateur de couleur
@@ -503,7 +509,10 @@ function editCode(code) {
     elements.startTimeInput.value = codeData.startTime || '09:00';
     elements.endTimeInput.value = codeData.endTime || '17:00';
     elements.colorInput.value = codeData.color || '#4285f4';
-    elements.exportableCheckbox.checked = codeData.exportable || false;
+    
+    // S'assurer que la case à cocher d'exportation est activée par défaut
+    // Si exportable est undefined ou null, on le considère comme true (actif)
+    elements.exportableCheckbox.checked = codeData.exportable !== false;
     
     // Afficher le bouton de suppression
     elements.deleteCodeBtn.style.display = 'inline-block';
@@ -530,6 +539,37 @@ function resetCodeEditor() {
     
     // Masquer le bouton de suppression
     elements.deleteCodeBtn.style.display = 'none';
+}
+
+/**
+ * Détermine si un code est un code de nuit en fonction de son nom et/ou de ses heures
+ * @param {string} code - Le code à vérifier
+ * @param {string} startTime - L'heure de début au format HH:MM
+ * @param {string} endTime - L'heure de fin au format HH:MM
+ * @returns {boolean} - True si c'est un code de nuit
+ */
+function isNightShift(code, startTime, endTime) {
+    // Vérifier si le code commence par N (convention pour les codes de nuit)
+    const codeStartsWithN = code.startsWith('N');
+    
+    // Vérifier si la description contient des mots-clés liés à la nuit
+    const isNightInDescription = settingsState.currentEditingCode && 
+                               settingsState.codes[settingsState.currentEditingCode] && 
+                               settingsState.codes[settingsState.currentEditingCode].description && 
+                               settingsState.codes[settingsState.currentEditingCode].description.toLowerCase().includes('nuit');
+    
+    // Vérifier les heures (si l'heure de début est après 18h et l'heure de fin avant 12h)
+    let isNightHours = false;
+    if (startTime && endTime) {
+        const startHour = parseInt(startTime.split(':')[0]);
+        const endHour = parseInt(endTime.split(':')[0]);
+        
+        // Si l'heure de début est en soirée (après 18h) et l'heure de fin est le matin (avant 12h)
+        isNightHours = (startHour >= 18 || startHour <= 3) && (endHour >= 4 && endHour <= 12);
+    }
+    
+    // C'est un code de nuit si le code commence par N OU si les heures correspondent à un quart de nuit
+    return codeStartsWithN || isNightInDescription || isNightHours;
 }
 
 /**
@@ -579,14 +619,24 @@ function handleCodeFormSubmit(codeFormSubmitEvent) {
         delete settingsState.codes[oldCode];
     }
     
+    // Déterminer si c'est un code de nuit
+    const isOvernight = isNightShift(code, startTime, endTime);
+    
     // Mettre à jour ou créer le code
     settingsState.codes[code] = {
         description,
         startTime,
         endTime,
         color,
-        exportable
+        exportable,
+        isOvernight
     };
+    
+    // Si c'est un code de nuit, afficher un message informatif
+    if (isOvernight) {
+        console.log(`Le code "${code}" a été détecté comme un code de nuit et sera affiché sur deux jours dans le calendrier exporté.`);
+        showToast(`Le code "${code}" a été configuré comme un code de nuit`, "info");
+    }
     
     // Sauvegarder les codes
     saveCodes();
@@ -657,7 +707,9 @@ function handleApiFormSubmit(apiFormEvent) {
     
     // Récupérer les valeurs du formulaire
     const apiKey = elements.apiKeyInput.value.trim();
-    const strictMode = elements.strictModeCheckbox.checked;
+    
+    // Le mode strict est toujours activé, même si l'élément de case à cocher a été supprimé
+    const strictMode = true;
     
     console.log("Paramètres API à sauvegarder:", {
         apiKeyPresent: !!apiKey,

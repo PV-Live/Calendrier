@@ -98,7 +98,11 @@ function formatDateForICS(date) {
 function generateUID(personName, month, year, day) {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 1000000);
-    return `${timestamp}-${random}-${personName.replace(/\s/g, '')}-${year}${month.toString().padStart(2, '0')}${day.toString().padStart(2, '0')}@calendrierleopwa`;
+    
+    // S'assurer que personName est une chaîne de caractères
+    const safePersonName = typeof personName === 'string' ? personName : String(personName || 'calendrier');
+    
+    return `${timestamp}-${random}-${safePersonName.replace(/\s/g, '')}-${year}${month.toString().padStart(2, '0')}${day.toString().padStart(2, '0')}@calendrierleopwa`;
 }
 
 /**

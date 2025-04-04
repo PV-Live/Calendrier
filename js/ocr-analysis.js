@@ -71,7 +71,21 @@ async function analyzeSchedule() {
         });
         
         if (!apiKey) {
-            showToast("Veuillez configurer votre clé API dans les paramètres", "error");
+            showToast("Veuillez configurer votre clé API dans les paramètres ou utiliser la saisie manuelle", "warning");
+            
+            // Ouvrir automatiquement l'interface de saisie manuelle
+            console.log("Aucune clé API configurée, ouverture de l'interface de saisie manuelle");
+            
+            // Vérifier si la fonction showCalendarWithManualEntry est disponible
+            if (typeof showCalendarWithManualEntry === 'function') {
+                // Utiliser setTimeout pour laisser le temps au toast de s'afficher
+                setTimeout(() => {
+                    showCalendarWithManualEntry();
+                }, 500);
+            } else {
+                console.error("La fonction showCalendarWithManualEntry n'est pas disponible");
+            }
+            
             return;
         }
         
