@@ -38,6 +38,7 @@ header {
     text-align: center;
     padding: 1.5rem 1rem;
     box-shadow: var(--shadow);
+    position: relative;
 }
 
 header h1 {
@@ -48,6 +49,52 @@ header h1 {
 header p {
     font-size: 1rem;
     opacity: 0.9;
+}
+
+/* Navigation en haut à droite */
+.top-nav {
+    position: absolute;
+    top: 1.5rem;
+    right: calc((100% - 1200px) / 2);
+    display: flex;
+    gap: 0.75rem;
+}
+
+@media (max-width: 1240px) {
+    .top-nav {
+        right: 1.5rem;
+    }
+}
+
+.nav-link {
+    color: var(--white);
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    background-color: rgba(255, 255, 255, 0.15);
+    transition: var(--transition);
+    font-size: 0.9rem;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.nav-icon {
+    margin-right: 0.5rem;
+    stroke-width: 2;
+}
+
+.nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.nav-link.active {
+    background-color: rgba(255, 255, 255, 0.25);
+    font-weight: 500;
 }
 
 /* Contenu principal */
@@ -574,7 +621,7 @@ footer {
     border: 1px solid var(--medium-gray);
     border-radius: var(--border-radius);
     padding: 0.5rem;
-    max-height: 400px;
+    max-height: 590px;
 }
 
 .code-item {
