@@ -14,13 +14,23 @@ const MISTRAL_API_CONFIG = {
  * @returns {Promise<Object>} - Résultat brut de l'analyse OCR
  */
 async function analyzeImageWithMistralOCR(imageFile, apiKey) {
-    console.log('=== DÉBUT ANALYSE MISTRAL OCR ===');
-    console.log(`Type de fichier: ${imageFile.type}, Taille: ${Math.round(imageFile.size / 1024)} KB`);
+    appLogger.log('=== DÉBUT ANALYSE MISTRAL OCR ===');
+    appLogger.log(`Type de fichier: ${imageFile.type}, Taille: ${Math.round(imageFile.size / 1024)} KB`);
+    
+    // Envoyer un événement de début d'analyse
+    sendAnalyticsEvent('image_analysis_started', {
+        image_size: imageFile.size,
+        image_type: imageFile.type
+    });
     
     try {
         // Vérifier si la clé API est fournie
         if (!apiKey) {
-            console.warn('Aucune clé API fournie, utilisation du mode démo');
+            appLogger.warn('Aucune clé API fournie, utilisation du mode démo');
+            // Envoyer un événement d'erreur
+            sendAnalyticsEvent('image_analysis_error', {
+                error_type: 'no_api_key'
+            });
             return {
                 success: true,
                 ocrText: "Mode démo - Texte OCR simulé",
@@ -30,7 +40,7 @@ async function analyzeImageWithMistralOCR(imageFile, apiKey) {
         
         // Convertir l'image en base64
         const base64Image = await convertImageToBase64(imageFile);
-        console.log(`Image convertie en base64 (longueur: ${base64Image.length} caractères)`);
+        appLogger.log(`Image convertie en base64 (longueur: ${base64Image.length} caractères)`);
         
         // Préparer les données de la requête
         const requestData = {
@@ -42,7 +52,7 @@ async function analyzeImageWithMistralOCR(imageFile, apiKey) {
         };
         
         // Envoyer la requête à l'API
-        console.log('Envoi de la requête à l\'API Mistral OCR...');
+        appLogger.log('Envoi de la requête à l\'API Mistral OCR...');
         const response = await fetch(MISTRAL_API_CONFIG.endpoint, {
             method: 'POST',
             headers: {
@@ -55,14 +65,20 @@ async function analyzeImageWithMistralOCR(imageFile, apiKey) {
         // Vérifier si la requête a réussi
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            console.error(`Erreur API (${response.status}):`, errorData);
+            appLogger.error(`Erreur API (${response.status}):`, errorData);
+            // Envoyer un événement d'erreur
+            sendAnalyticsEvent('image_analysis_error', {
+                error_type: 'api_error',
+                status_code: response.status,
+                error_message: errorData.error?.message || "Erreur inconnue"
+            });
             throw new Error(`Erreur API: ${response.status} - ${errorData.error?.message || 'Erreur inconnue'}`);
         }
         
         // Récupérer la réponse
         const data = await response.json();
-        console.log('Réponse de l\'API reçue');
-        console.log('Réponse complète:', JSON.stringify(data, null, 2));
+        appLogger.log('Réponse de l\'API reçue');
+        appLogger.log('Réponse complète:', JSON.stringify(data, null, 2));
         
         // Extraire le texte OCR
         let ocrText = '';
@@ -83,8 +99,13 @@ async function analyzeImageWithMistralOCR(imageFile, apiKey) {
             ocrText = JSON.stringify(data, null, 2);
         }
         
-        console.log('Texte OCR extrait:', ocrText);
-        console.log('=== FIN ANALYSE MISTRAL OCR (SUCCÈS) ===');
+        appLogger.log('Texte OCR extrait:', ocrText);
+        appLogger.log('=== FIN ANALYSE MISTRAL OCR (SUCCÈS) ===');
+        
+        // Envoyer un événement de succès
+        sendAnalyticsEvent('image_analysis_success', {
+            text_length: ocrText.length
+        });
         
         return {
             success: true,
@@ -92,8 +113,14 @@ async function analyzeImageWithMistralOCR(imageFile, apiKey) {
             rawResponse: data
         };
     } catch (error) {
-        console.error('Erreur lors de l\'analyse OCR:', error);
-        console.log('=== FIN ANALYSE MISTRAL OCR (AVEC ERREUR) ===');
+        appLogger.error('Erreur lors de l\'analyse OCR:', error);
+        appLogger.log('=== FIN ANALYSE MISTRAL OCR (AVEC ERREUR) ===');
+        
+        // Envoyer un événement d'erreur
+        sendAnalyticsEvent('image_analysis_error', {
+            error_type: 'exception',
+            error_message: error.message
+        });
         
         return {
             success: false,

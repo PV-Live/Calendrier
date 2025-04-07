@@ -44,10 +44,39 @@ const elements = {
 };
 
 /**
+ * Système de logging centralisé
+ * Permet d'activer/désactiver facilement tous les logs de l'application
+ */
+const appLogger = {
+    // Mettre à false pour désactiver tous les logs
+    enabled: false,
+    
+    log: function(...args) {
+        if (this.enabled) {
+            console.log(...args);
+        }
+    },
+    
+    warn: function(...args) {
+        if (this.enabled) {
+            console.warn(...args);
+        }
+    },
+    
+    error: function(...args) {
+        // Les erreurs sont toujours affichées pour faciliter le débogage
+        console.error(...args);
+    }
+};
+
+// Exposer l'objet logger globalement
+window.appLogger = appLogger;
+
+/**
  * Initialise les éléments DOM
  */
 function initElements() {
-    console.log("Initialisation des éléments DOM");
+    appLogger.log("Initialisation des éléments DOM");
     
     elements.dropArea = document.getElementById('dropArea');
     elements.fileInput = document.getElementById('fileInput');
@@ -73,7 +102,7 @@ function initElements() {
  * Initialise l'état de l'application
  */
 function initAppState() {
-    console.log("Initialisation de l'état de l'application");
+    appLogger.log("Initialisation de l'état de l'application");
     
     // Définir le mois et l'année actuels
     if (elements.monthSelect) elements.monthSelect.value = appState.month;
@@ -85,7 +114,7 @@ function initAppState() {
     // Ajouter un écouteur d'événement pour forcer la mise à jour de l'état du formulaire
     // après un court délai (pour s'assurer que tous les éléments sont chargés)
     setTimeout(function() {
-        console.log("Mise à jour forcée de l'état du formulaire après délai");
+        appLogger.log("Mise à jour forcée de l'état du formulaire après délai");
         updateFormState();
     }, 500);
 }
@@ -94,7 +123,7 @@ function initAppState() {
  * Initialise les gestionnaires d'événements
  */
 function initEventListeners() {
-    console.log("Initialisation des gestionnaires d'événements");
+    appLogger.log("Initialisation des gestionnaires d'événements");
     
     // Gestionnaire pour le chargement de fichier
     if (elements.fileInput) {
@@ -153,43 +182,43 @@ function updateFormState() {
  * Initialise l'application
  */
 async function initApp() {
-    console.log("Initialisation de l'application");
+    appLogger.log("Initialisation de l'application");
     
     // Initialiser les éléments DOM
     initElements();
-    console.log("Éléments DOM initialisés");
+    appLogger.log("Éléments DOM initialisés");
     
     // Initialiser l'état de l'application
     initAppState();
-    console.log("État de l'application initialisé");
+    appLogger.log("État de l'application initialisé");
     
     // Mettre à jour l'état du formulaire
     updateFormState();
     
     // Initialiser les gestionnaires d'événements
     initEventListeners();
-    console.log("Gestionnaires d'événements initialisés");
+    appLogger.log("Gestionnaires d'événements initialisés");
     
     // Charger les paramètres API
     await loadApiSettings();
-    console.log("Paramètres API chargés:", appState.apiSettings);
+    appLogger.log("Paramètres API chargés:", appState.apiSettings);
     
     // Charger les codes
     await loadCodes();
-    console.log("Données des codes chargées:", appState.codesData);
-    console.log(`${appState.validCodes.length} codes valides chargés:`, appState.validCodes);
+    appLogger.log("Données des codes chargées:", appState.codesData);
+    appLogger.log(`${appState.validCodes.length} codes valides chargés:`, appState.validCodes);
     
     // Créer la légende des codes
     if (elements.codeLegendContainer) {
         elements.codeLegendContainer.innerHTML = '';
         const codeLegend = createCodeLegend();
         elements.codeLegendContainer.appendChild(codeLegend);
-        console.log("Légende des codes créée");
+        appLogger.log("Légende des codes créée");
     }
     
     // Mettre à jour les listes déroulantes de codes
     updateCodeDropdowns();
-    console.log("Listes déroulantes de codes mises à jour");
+    appLogger.log("Listes déroulantes de codes mises à jour");
     
     // Écouter les événements de mise à jour des codes depuis la page des paramètres
     document.addEventListener('codesUpdated', handleCodesUpdated);
@@ -199,7 +228,7 @@ async function initApp() {
     
     // Ajouter le bouton de saisie manuelle
     addManualEntryButton();
-    console.log("Bouton de saisie manuelle ajouté");
+    appLogger.log("Bouton de saisie manuelle ajouté");
 }
 
 /**
@@ -207,7 +236,7 @@ async function initApp() {
  * @param {CustomEvent} event - L'événement personnalisé
  */
 async function handleCodesUpdated(event) {
-    console.log("Mise à jour des codes détectée:", event.detail);
+    appLogger.log("Mise à jour des codes détectée:", event.detail);
     
     // Recharger les codes
     await loadCodes();
@@ -222,7 +251,7 @@ async function handleCodesUpdated(event) {
     // Mettre à jour les listes déroulantes de codes
     updateCodeDropdowns();
     
-    console.log("Codes mis à jour avec succès");
+    appLogger.log("Codes mis à jour avec succès");
 }
 
 /**
@@ -246,9 +275,37 @@ function showToast(message, type = 'info') {
     }
 }
 
+/**
+ * Envoie un événement à Google Tag Manager
+ * @param {string} eventName - Nom de l'événement
+ * @param {Object} eventParams - Paramètres supplémentaires de l'événement (optionnel)
+ */
+function sendAnalyticsEvent(eventName, eventParams = {}) {
+    appLogger.log(`Envoi d'événement analytics: ${eventName}`, eventParams);
+    
+    // Vérifier que dataLayer existe
+    if (typeof window.dataLayer !== 'undefined') {
+        // Ajouter des paramètres communs
+        const eventData = {
+            event: eventName,
+            timestamp: new Date().toISOString(),
+            ...eventParams
+        };
+        
+        // Envoyer l'événement à GTM
+        window.dataLayer.push(eventData);
+        appLogger.log('Événement envoyé à GTM:', eventData);
+    } else {
+        appLogger.warn('dataLayer non disponible, événement non envoyé:', eventName);
+    }
+}
+
+// Exposer la fonction globalement
+window.sendAnalyticsEvent = sendAnalyticsEvent;
+
 // Initialise l'application au chargement du DOM
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM chargé, initialisation de l\'application...');
+    appLogger.log('DOM chargé, initialisation de l\'application...');
     
     // Exposer les fonctions et objets nécessaires globalement
     window.appState = appState;
@@ -258,7 +315,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     initApp();
     
-    console.log("Application initialisée avec succès");
+    appLogger.log("Application initialisée avec succès");
 });
 
 /**
@@ -273,7 +330,7 @@ function loadSettingsFile() {
             return response.json();
         })
         .then(data => {
-            console.log("Fichier de paramètres chargé:", data);
+            appLogger.log("Fichier de paramètres chargé:", data);
             
             // Vérifier si des codes existent déjà dans le localStorage
             const appSettingsJson = localStorage.getItem('appSettings');
@@ -285,23 +342,23 @@ function loadSettingsFile() {
                     appSettings = JSON.parse(appSettingsJson);
                     if (appSettings && appSettings.codes && Object.keys(appSettings.codes).length > 0) {
                         existingCodes = appSettings.codes;
-                        console.log("Codes existants trouvés dans localStorage:", Object.keys(existingCodes).length);
+                        appLogger.log("Codes existants trouvés dans localStorage:", Object.keys(existingCodes).length);
                     }
                 } catch (error) {
-                    console.error('Erreur lors du chargement de appSettings:', error);
+                    appLogger.error('Erreur lors du chargement de appSettings:', error);
                 }
             }
             
             // Ne mettre à jour les codes que si aucun code n'existe dans le localStorage
             if (data.codes && !existingCodes) {
-                console.log("Aucun code existant, utilisation des codes du fichier JSON");
+                appLogger.log("Aucun code existant, utilisation des codes du fichier JSON");
                 
                 // Mettre à jour uniquement les codes, pas les paramètres API
                 appSettings.codes = data.codes;
                 
                 // Sauvegarder
                 localStorage.setItem('appSettings', JSON.stringify(appSettings));
-                console.log(`${Object.keys(data.codes).length} codes mis à jour depuis le fichier de paramètres`);
+                appLogger.log(`${Object.keys(data.codes).length} codes mis à jour depuis le fichier de paramètres`);
                 
                 // Mettre à jour les codes dans l'application
                 appState.codesData = data.codes;
@@ -317,7 +374,7 @@ function loadSettingsFile() {
                 // Mettre à jour les listes déroulantes de codes
                 updateCodeDropdowns();
             } else if (existingCodes) {
-                console.log("Codes existants conservés, ignorant les codes du fichier JSON");
+                appLogger.log("Codes existants conservés, ignorant les codes du fichier JSON");
             }
             
             // Ne pas écraser les paramètres API existants si une clé API est déjà configurée
@@ -325,20 +382,20 @@ function loadSettingsFile() {
                 if (appSettingsJson) {
                     try {
                         if (appSettings && appSettings.apiSettings && appState.apiSettings.apiKey) {
-                            console.log("Paramètres API existants conservés (clé API déjà configurée)");
+                            appLogger.log("Paramètres API existants conservés (clé API déjà configurée)");
                             return;
                         }
                     } catch (error) {
-                        console.error('Erreur lors du chargement des paramètres API depuis appSettings:', error);
+                        appLogger.error('Erreur lors du chargement des paramètres API depuis appSettings:', error);
                     }
                 }
                 
                 // Si aucune clé API n'est configurée, utiliser celle du fichier de paramètres
                 saveApiSettings(data.apiSettings);
-                console.log("Paramètres API mis à jour depuis le fichier de paramètres");
+                appLogger.log("Paramètres API mis à jour depuis le fichier de paramètres");
             }
         })
         .catch(error => {
-            console.warn("Erreur lors du chargement du fichier de paramètres:", error);
+            appLogger.warn("Erreur lors du chargement du fichier de paramètres:", error);
         });
 }

@@ -1,103 +1,92 @@
-# Calendrier Leo - PWA avec Mistral OCR
+# MyMedICal - Convertisseur de Planning en Calendrier ICS
 
-Une Progressive Web App (PWA) pour analyser des images de planning et les convertir en calendrier au format JSON ou ICS.
+Une Application web pour analyser des images de planning de personnel médical et les convertir en calendrier au format ICS, facilitant l'intégration avec vos applications de calendrier préférées.
 
 ## Fonctionnalités
 
-- Analyse d'images de planning avec Mistral OCR
+- Analyse d'images de planning avec Google Vision API
 - Extraction des codes de travail pour une personne spécifique
-- Édition manuelle des résultats
+- Saisie manuelle des codes de planning
+- Contrôle précis des jours à exporter via un système de cases à cocher
 - Export au format ICS (iCalendar) pour l'intégration avec d'autres applications de calendrier
-- Export au format JSON pour une intégration personnalisée
 - Fonctionne hors ligne (sauf pour l'analyse d'images)
 - Installation possible sur mobile et desktop (PWA)
 
-## Installation
+## Configuration de l'API Google Vision
 
-1. Clonez ce dépôt ou téléchargez les fichiers
-2. Configurez votre clé API Mistral OCR (voir ci-dessous)
-3. Démarrez un serveur web local pour tester l'application
+Pour utiliser l'API Google Vision, vous devez obtenir une clé API auprès de Google Cloud et la configurer dans l'application :
 
-```bash
-# Rendre le script de démarrage exécutable
-chmod +x start-server.sh
+1. Créez un compte sur [Google Cloud Platform](https://cloud.google.com/)
+2. Créez un nouveau projet et activez l'API Vision
+3. Créez une clé API dans la section "Identifiants"
+4. Dans l'application, allez dans "Paramètres" et entrez votre clé API dans le champ prévu à cet effet
 
-# Démarrer le serveur
-./start-server.sh
-```
+**Note :** Sans clé API configurée, l'application fonctionnera uniquement en mode saisie manuelle.
 
-4. Ouvrez votre navigateur à l'adresse http://localhost:8000
+## Guide d'utilisation
 
-## Configuration de l'API Mistral OCR
+### Analyse d'une image de planning
 
-Pour utiliser l'API Mistral OCR, vous devez obtenir une clé API auprès de Mistral AI et la configurer dans l'application :
-
-1. Créez un compte sur [Mistral AI](https://mistral.ai/)
-2. Obtenez une clé API dans votre espace développeur
-3. Ouvrez le fichier `js/mistral-api.js`
-4. Remplacez la valeur de `apiKey` dans l'objet `MISTRAL_API_CONFIG` par votre clé API :
-
-```javascript
-const MISTRAL_API_CONFIG = {
-    apiKey: 'VOTRE_CLE_API_MISTRAL',
-    endpoint: 'https://api.mistral.ai/v1/ocr',
-    model: 'mistral-ocr-medium'
-};
-```
-
-**Note :** Sans clé API configurée, l'application fonctionnera en mode démo avec des données simulées.
-
-## Utilisation
-
-1. Chargez une image de planning en la glissant-déposant ou en cliquant sur le bouton "Parcourir"
+1. Sur la page d'accueil, cliquez sur "Parcourir" pour sélectionner une image de votre planning
 2. Entrez le nom de la personne dont vous souhaitez extraire le planning
 3. Sélectionnez le mois et l'année correspondant au planning
-4. Cliquez sur "Analyser l'image"
-5. Modifiez les résultats si nécessaire
-6. Exportez les résultats au format ICS ou JSON
+4. Cliquez sur "Analyser le planning"
+5. L'application analysera l'image et extraira les codes de travail
 
-## Personnalisation des codes
+### Saisie manuelle des codes
 
-L'application utilise une légende de codes par défaut, mais vous pouvez la personnaliser en modifiant le fichier `js/app.js` :
+Si vous préférez saisir manuellement les codes ou si l'analyse d'image n'est pas disponible :
 
-```javascript
-// Légende par défaut
-appState.codeLegend = {
-    'JBD': 'Jour de bureau - Domicile',
-    'JBB': 'Jour de bureau - Bureau',
-    'RH': 'Ressources Humaines',
-    'CP': 'Congé Payé',
-    'M': 'Maladie',
-    'F': 'Formation'
-};
-```
+1. Cliquez sur le bouton "Saisie manuelle" 
+2. Entrez les codes séparés par des virgules ou des espaces
+3. Cliquez sur "Appliquer les codes"
 
-## Déploiement
+### Personnalisation de l'exportation
 
-Pour déployer cette PWA sur un serveur web :
+Une fois les codes affichés dans le calendrier :
 
-1. Téléchargez tous les fichiers sur votre serveur web
-2. Assurez-vous que votre serveur est configuré pour servir les fichiers statiques
-3. Configurez HTTPS (requis pour les PWA)
-4. Configurez votre clé API Mistral OCR
+1. Certains jours peuvent être marqués avec des hachures diagonales, indiquant qu'ils ne seront pas exportés par défaut (généralement les jours de repos)
+2. Pour inclure un jour spécifique dans l'exportation, cochez la case correspondante dans la cellule du calendrier
+3. Pour exclure un jour, décochez la case
 
-## Technologies utilisées
+### Exportation au format ICS
 
-- HTML5, CSS3, JavaScript (ES6+)
-- API Mistral OCR pour l'analyse d'images
-- Service Workers pour le fonctionnement hors ligne
-- Web App Manifest pour l'installation sur les appareils
+1. Une fois que vous avez personnalisé les jours à exporter, cliquez sur le bouton "Exporter en ICS"
+2. Le fichier ICS sera téléchargé et pourra être importé dans votre application de calendrier préférée (Google Calendar, Outlook, Apple Calendar, etc.)
 
-## Limitations
+### Gestion des codes
 
-- L'analyse d'images nécessite une connexion Internet et une clé API Mistral OCR
-- La précision de l'analyse dépend de la qualité de l'image et de la clarté du planning
-- Certains navigateurs anciens peuvent ne pas prendre en charge toutes les fonctionnalités PWA
+Dans la section "Paramètres" :
 
-## Licence
+1. Vous pouvez ajouter, modifier ou supprimer des codes de travail
+2. Pour chaque code, vous pouvez définir :
+   - Une description
+   - Une couleur pour l'affichage dans le calendrier
+   - Les heures de début et de fin
+   - Si le code doit être exporté par défaut
+   - Si le code représente un quart de nuit (s'étendant sur deux jours)
 
-Ce projet est sous licence MIT. Voir le fichier LICENSE pour plus de détails.
+## Fonctionnalités avancées
 
----
+### Système de remplacements d'exportation
 
-Développé par Antoine Lemay © 2025
+L'application permet de contrôler finement quels jours sont inclus dans l'exportation ICS :
+
+- Par défaut, certains codes (comme les jours de repos) peuvent être configurés pour ne pas être exportés
+- Grâce au système de cases à cocher, vous pouvez réactiver l'exportation pour des jours spécifiques
+- Ces préférences sont sauvegardées entre les sessions
+
+### Mode hors ligne
+
+L'application fonctionne également hors ligne :
+
+- Toutes les fonctionnalités sauf l'analyse d'image sont disponibles sans connexion internet
+- Les paramètres et les codes sont sauvegardés localement
+- Les préférences d'exportation sont conservées
+
+## Dépannage
+
+- Si l'analyse d'image ne fonctionne pas, vérifiez que votre clé API est correctement configurée
+- Si certains codes ne sont pas reconnus, vous pouvez les ajouter manuellement dans les paramètres
+- Pour réinitialiser l'application, supprimez les données du site dans les paramètres de votre navigateur
+- Vous pouvez contacter l'équipe de développement si vous rencontrez des problèmes.

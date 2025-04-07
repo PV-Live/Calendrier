@@ -8,7 +8,7 @@
  * @param {Object} result - Résultat de l'analyse
  */
 function displayResults(result) {
-    console.log("Affichage des résultats:", result);
+    appLogger.log("Affichage des résultats:", result);
     
     // Charger les remplacements d'exportation
     loadExportOverrides();
@@ -164,7 +164,7 @@ function displayResults(result) {
                         // Mettre à jour la couleur de la cellule
                         cell.style.backgroundColor = getCodeColor(selectedCode);
                         
-                        console.log(`Code mis à jour pour le jour ${dayIndex + 1}: ${selectedCode}`);
+                        appLogger.log(`Code mis à jour pour le jour ${dayIndex + 1}: ${selectedCode}`);
                     });
                     
                     // Ajouter les éléments à la cellule
@@ -226,7 +226,7 @@ function displayResults(result) {
                                 cell.classList.add('not-exported');
                             }
                             
-                            console.log(`Jour ${day} (${code}): exportation ${this.checked ? 'activée' : 'désactivée'}`);
+                            appLogger.log(`Jour ${day} (${code}): exportation ${this.checked ? 'activée' : 'désactivée'}`);
                         });
                         
                         // Ajouter la case à cocher au conteneur
@@ -273,23 +273,32 @@ function getMonthName(month) {
  * Exporte le calendrier au format ICS
  */
 function exportToICS() {
-    console.log("=== DÉBUT FONCTION exportToICS ===");
-    console.log("Étape 1: Vérification des résultats disponibles");
+    appLogger.log("=== DÉBUT FONCTION exportToICS ===");
+    appLogger.log("Étape 1: Vérification des résultats disponibles");
+    
+    // Envoyer un événement de début d'exportation
+    sendAnalyticsEvent('ics_export_started');
     
     if (!appState.results || !appState.results.found) {
-        console.error("Aucun résultat à exporter - Arrêt de la fonction");
+        appLogger.error("Aucun résultat à exporter - Arrêt de la fonction");
         showToast("Aucun résultat à exporter", "error");
+        
+        // Envoyer un événement d'erreur d'exportation
+        sendAnalyticsEvent('ics_export_error', {
+            error_type: 'no_results'
+        });
+        
         return;
     }
     
-    console.log("Étape 2: Extraction des données des résultats");
+    appLogger.log("Étape 2: Extraction des données des résultats");
     const result = appState.results;
     const month = result.month;
     const year = result.year;
     const personName = result.name;
     const codes = result.codes;
     
-    console.log("Données extraites:", {
+    appLogger.log("Données extraites:", {
         personName,
         month,
         year,
@@ -298,30 +307,30 @@ function exportToICS() {
     });
     
     // Récupérer les données des codes
-    console.log("Étape 2.1: Récupération des données des codes");
+    appLogger.log("Étape 2.1: Récupération des données des codes");
     const codesData = appState.codesData || {};
-    console.log("Données des codes:", codesData);
+    appLogger.log("Données des codes:", codesData);
     
     // NOUVEAU: Récupérer directement l'état des cases à cocher dans le DOM
-    console.log("Étape 2.2: Lecture directe de l'état des cases à cocher");
+    appLogger.log("Étape 2.2: Lecture directe de l'état des cases à cocher");
     const exportOverrides = {};
     
     // Sélectionner toutes les cases à cocher d'exportation
     const checkboxes = document.querySelectorAll('.export-checkbox');
-    console.log(`Nombre de cases à cocher trouvées: ${checkboxes.length}`);
+    appLogger.log(`Nombre de cases à cocher trouvées: ${checkboxes.length}`);
     
     // Parcourir toutes les cases à cocher et stocker leur état
     checkboxes.forEach(checkbox => {
         const day = parseInt(checkbox.dataset.day);
         if (!isNaN(day)) {
             exportOverrides[day] = checkbox.checked;
-            console.log(`Case à cocher du jour ${day}: ${checkbox.checked ? 'cochée' : 'décochée'}`);
+            appLogger.log(`Case à cocher du jour ${day}: ${checkbox.checked ? 'cochée' : 'décochée'}`);
         }
     });
     
-    console.log("État des cases à cocher:", exportOverrides);
+    appLogger.log("État des cases à cocher:", exportOverrides);
     
-    console.log("Étape 3: Création de l'en-tête du fichier ICS");
+    appLogger.log("Étape 3: Création de l'en-tête du fichier ICS");
     // Créer l'en-tête du fichier ICS
     let icsContent = [
         'BEGIN:VCALENDAR',
@@ -331,7 +340,7 @@ function exportToICS() {
         'METHOD:PUBLISH'
     ].join('\r\n');
     
-    console.log("Étape 4: Ajout des événements au fichier ICS");
+    appLogger.log("Étape 4: Ajout des événements au fichier ICS");
     // Ajouter les événements
     let eventCount = 0;
     let skippedCount = 0;
@@ -340,20 +349,20 @@ function exportToICS() {
         const code = codes[day - 1];
         
         if (!code) {
-            console.log(`Jour ${day}: Pas de code, événement ignoré`);
+            appLogger.log(`Jour ${day}: Pas de code, événement ignoré`);
             continue;
         }
         
-        console.log(`Traitement du jour ${day} avec code ${code}`);
+        appLogger.log(`Traitement du jour ${day} avec code ${code}`);
         
         // Vérifier directement si ce jour doit être exporté en fonction de l'état de sa case à cocher
         const isDayExportable = exportOverrides[day] === true;
         
-        console.log(`Jour ${day}: Code ${code}, état de la case à cocher: ${isDayExportable ? 'cochée' : 'décochée'}`);
+        appLogger.log(`Jour ${day}: Code ${code}, état de la case à cocher: ${isDayExportable ? 'cochée' : 'décochée'}`);
         
         // Si le jour n'est pas exportable, passer au jour suivant
         if (!isDayExportable) {
-            console.log(`Jour ${day}: Non exportable (case décochée), événement ignoré`);
+            appLogger.log(`Jour ${day}: Non exportable (case décochée), événement ignoré`);
             skippedCount++;
             continue;
         }
@@ -367,12 +376,12 @@ function exportToICS() {
         
         // Vérifier si le code a des heures spécifiques définies
         const hasSpecificTimes = codeData && codeData.startTime && codeData.endTime;
-        console.log(`Le code ${code} a des heures spécifiques: ${hasSpecificTimes ? 'Oui' : 'Non'}`);
+        appLogger.log(`Le code ${code} a des heures spécifiques: ${hasSpecificTimes ? 'Oui' : 'Non'}`);
         
         // Par défaut, considérer que ce n'est PAS un événement toute la journée
         // Un événement est toute la journée seulement si explicitement configuré ainsi
         const isAllDay = codeData && codeData.isAllDay === true;
-        console.log(`Événement toute la journée: ${isAllDay ? 'Oui' : 'Non'}`);
+        appLogger.log(`Événement toute la journée: ${isAllDay ? 'Oui' : 'Non'}`);
         
         // Formater les dates
         let dtstart, dtend;
@@ -384,7 +393,7 @@ function exportToICS() {
             // Pour les événements toute la journée, la date de fin doit être le jour suivant
             endDate.setDate(endDate.getDate() + 1);
             dtend = formatDateForICS(endDate, true);
-            console.log(`Événement toute la journée: ${startDate.toLocaleDateString()} à ${endDate.toLocaleDateString()}`);
+            appLogger.log(`Événement toute la journée: ${startDate.toLocaleDateString()} à ${endDate.toLocaleDateString()}`);
         } else {
             // Définir les heures de début et de fin
             let startHour = 8; // Par défaut, commencer à 8h
@@ -399,14 +408,14 @@ function exportToICS() {
                 if (startTimeParts.length === 2) {
                     startHour = parseInt(startTimeParts[0]);
                     startMinute = parseInt(startTimeParts[1]);
-                    console.log(`Heure de début spécifique trouvée: ${startHour}:${startMinute}`);
+                    appLogger.log(`Heure de début spécifique trouvée: ${startHour}:${startMinute}`);
                 }
                 
                 const endTimeParts = codeData.endTime.split(':');
                 if (endTimeParts.length === 2) {
                     endHour = parseInt(endTimeParts[0]);
                     endMinute = parseInt(endTimeParts[1]);
-                    console.log(`Heure de fin spécifique trouvée: ${endHour}:${endMinute}`);
+                    appLogger.log(`Heure de fin spécifique trouvée: ${endHour}:${endMinute}`);
                 }
             }
             
@@ -417,29 +426,29 @@ function exportToICS() {
             startDate.setHours(startHour, startMinute, 0);
             dtstart = formatDateForICS(startDate);
             
-            console.log(`Code: ${code}, isNightShift: ${isNightShift}, startTime: ${startHour}:${startMinute}, endTime: ${endHour}:${endMinute}`);
+            appLogger.log(`Code: ${code}, isNightShift: ${isNightShift}, startTime: ${startHour}:${startMinute}, endTime: ${endHour}:${endMinute}`);
             
             // Gérer les codes de nuit (qui s'étendent sur deux jours)
             if (isNightShift) {
                 // Pour les codes de nuit, la date de fin est le jour suivant
                 endDate.setDate(endDate.getDate() + 1);
-                console.log(`Code de nuit détecté: ${code}, date de fin ajustée au jour suivant (${endDate.toISOString()})`);
+                appLogger.log(`Code de nuit détecté: ${code}, date de fin ajustée au jour suivant (${endDate.toISOString()})`);
             }
             
             // Définir la date et l'heure de fin
             endDate.setHours(endHour, endMinute, 0);
             dtend = formatDateForICS(endDate);
             
-            console.log(`Événement final: du ${dtstart} au ${dtend}`);
+            appLogger.log(`Événement final: du ${dtstart} au ${dtend}`);
             
             // Vérifier que l'heure de fin est après l'heure de début
             if (new Date(dtend) <= new Date(dtstart)) {
-                console.warn(`Attention: L'heure de fin (${dtend}) est avant ou égale à l'heure de début (${dtstart}) pour le code ${code} le jour ${day}`);
+                appLogger.warn(`Attention: L'heure de fin (${dtend}) est avant ou égale à l'heure de début (${dtstart}) pour le code ${code} le jour ${day}`);
                 // Si ce n'est pas un quart de nuit, ajuster l'heure de fin pour qu'elle soit au moins 1 heure après le début
                 if (!isNightShift) {
                     endDate.setTime(startDate.getTime() + (60 * 60 * 1000)); // +1 heure
                     dtend = formatDateForICS(endDate);
-                    console.log(`Heure de fin ajustée à ${dtend}`);
+                    appLogger.log(`Heure de fin ajustée à ${dtend}`);
                 }
             }
         }
@@ -497,17 +506,17 @@ function exportToICS() {
     // Fermer le calendrier
     icsContent += '\r\nEND:VCALENDAR';
     
-    console.log(`Étape 5: Génération du fichier ICS terminée (${eventCount} événements, ${skippedCount} ignorés)`);
-    console.log("Contenu ICS généré, longueur:", icsContent.length);
+    appLogger.log(`Étape 5: Génération du fichier ICS terminée (${eventCount} événements, ${skippedCount} ignorés)`);
+    appLogger.log("Contenu ICS généré, longueur:", icsContent.length);
     
     try {
-        console.log("Étape 6: Création du blob et du lien de téléchargement");
+        appLogger.log("Étape 6: Création du blob et du lien de téléchargement");
         // Créer le blob et le lien de téléchargement
         const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-        console.log("Blob créé:", blob.size, "octets");
+        appLogger.log("Blob créé:", blob.size, "octets");
         
         const url = URL.createObjectURL(blob);
-        console.log("URL créée:", url);
+        appLogger.log("URL créée:", url);
         
         // Créer un élément de lien pour le téléchargement
         const a = document.createElement('a');
@@ -516,29 +525,44 @@ function exportToICS() {
         a.download = `calendrier-${safePersonName.replace(/\s+/g, '-')}-${year}-${month.toString().padStart(2, '0')}.ics`;
         a.style.display = 'none';
         
-        console.log("Étape 7: Ajout du lien au DOM et déclenchement du téléchargement");
-        console.log("Nom du fichier:", a.download);
+        appLogger.log("Étape 7: Ajout du lien au DOM et déclenchement du téléchargement");
+        appLogger.log("Nom du fichier:", a.download);
         
         // Ajouter l'élément au DOM, déclencher le clic, puis le supprimer
         document.body.appendChild(a);
-        console.log("Lien ajouté au DOM");
+        appLogger.log("Lien ajouté au DOM");
         
         a.click();
-        console.log("Clic sur le lien déclenché");
+        appLogger.log("Clic sur le lien déclenché");
         
         // Nettoyer après le téléchargement
         setTimeout(() => {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            console.log("Nettoyage terminé");
+            appLogger.log("Nettoyage terminé");
             
             showToast(`Calendrier exporté avec succès (${eventCount} événements)`, "success");
-            console.log("=== FIN FONCTION exportToICS ===");
+            appLogger.log("=== FIN FONCTION exportToICS ===");
+            
+            // Envoyer un événement de succès d'exportation
+            sendAnalyticsEvent('ics_export_success', {
+                events_count: eventCount,
+                skipped_count: skippedCount,
+                file_size: blob.size,
+                month: appState.results.month,
+                year: appState.results.year
+            });
         }, 100);
     } catch (error) {
-        console.error("Erreur lors de l'exportation du calendrier:", error);
+        appLogger.error("Erreur lors de l'exportation du calendrier:", error);
         showToast("Erreur lors de l'exportation du calendrier", "error");
-        console.log("=== FIN FONCTION exportToICS (avec erreur) ===");
+        appLogger.log("=== FIN FONCTION exportToICS (avec erreur) ===");
+        
+        // Envoyer un événement d'erreur d'exportation
+        sendAnalyticsEvent('ics_export_error', {
+            error_type: 'exception',
+            error_message: error.message
+        });
     }
 }
 
@@ -549,7 +573,7 @@ function exportToICS() {
  * @returns {string} - Date formatée
  */
 function formatDateForICS(date, dateOnly = false) {
-    console.log("formatDateForICS - Date d'entrée:", date, "dateOnly:", dateOnly);
+    appLogger.log("formatDateForICS - Date d'entrée:", date, "dateOnly:", dateOnly);
     
     // Créer une copie de la date pour ne pas modifier l'originale
     const dateCopy = new Date(date);
@@ -560,7 +584,7 @@ function formatDateForICS(date, dateOnly = false) {
     
     if (dateOnly) {
         const result = `${year}${month}${day}`;
-        console.log("formatDateForICS - Résultat (date uniquement):", result);
+        appLogger.log("formatDateForICS - Résultat (date uniquement):", result);
         return result;
     }
     
@@ -571,7 +595,7 @@ function formatDateForICS(date, dateOnly = false) {
     // Ne pas ajouter le Z pour garder l'heure locale
     // Cela est important pour les codes de nuit qui doivent être affichés aux heures locales
     const result = `${year}${month}${day}T${hours}${minutes}${seconds}`;
-    console.log("formatDateForICS - Résultat (date et heure):", result);
+    appLogger.log("formatDateForICS - Résultat (date et heure):", result);
     return result;
 }
 
@@ -584,7 +608,7 @@ function formatDateForICS(date, dateOnly = false) {
  * @returns {string} - UID
  */
 function generateUID(year, month, day, code) {
-    console.log("generateUID - Paramètres:", { year, month, day, code });
+    appLogger.log("generateUID - Paramètres:", { year, month, day, code });
     
     // S'assurer que tous les paramètres sont du bon type
     const safeYear = String(year || new Date().getFullYear());
@@ -595,7 +619,7 @@ function generateUID(year, month, day, code) {
     const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
     const uid = `${safeYear}${safeMonth}${safeDay}-${safeCode}-${random}@calendrier-chal`;
     
-    console.log("generateUID - UID généré:", uid);
+    appLogger.log("generateUID - UID généré:", uid);
     return uid;
 }
 
@@ -635,7 +659,7 @@ function copyToClipboard() {
             showToast("Codes copiés dans le presse-papier", "success");
         })
         .catch(err => {
-            console.error('Erreur lors de la copie:', err);
+            appLogger.error('Erreur lors de la copie:', err);
             showToast("Erreur lors de la copie", "error");
         });
 }
@@ -645,26 +669,35 @@ function copyToClipboard() {
  * Cette fonction garantit le téléchargement du fichier ICS
  */
 function downloadICSFile() {
-    console.log("=== FONCTION downloadICSFile APPELÉE DIRECTEMENT PAR LE BOUTON ===");
+    appLogger.log("=== FONCTION downloadICSFile APPELÉE DIRECTEMENT PAR LE BOUTON ===");
+    
+    // Envoyer un événement de début d'exportation
+    sendAnalyticsEvent('ics_download_started');
     
     try {
         // S'assurer que les remplacements d'exportation sont chargés
         loadExportOverrides();
         
         if (!appState.results || !appState.results.found) {
-            console.error("Aucun résultat à exporter - Arrêt de la fonction");
+            appLogger.error("Aucun résultat à exporter - Arrêt de la fonction");
             showToast("Aucun résultat à exporter", "error");
+            
+            // Envoyer un événement d'erreur d'exportation
+            sendAnalyticsEvent('ics_download_error', {
+                error_type: 'no_results'
+            });
+            
             return;
         }
         
-        console.log("Extraction des données des résultats");
+        appLogger.log("Extraction des données des résultats");
         const result = appState.results;
         const month = result.month;
         const year = result.year;
         const personName = result.name;
         const codes = result.codes;
         
-        console.log("Données extraites:", {
+        appLogger.log("Données extraites:", {
             personName,
             month,
             year,
@@ -690,13 +723,13 @@ function downloadICSFile() {
                 continue;
             }
             
-            console.log(`Traitement du jour ${day} avec code ${code}`);
+            appLogger.log(`Traitement du jour ${day} avec code ${code}`);
             
             // Vérifier si le code doit être exporté
             const shouldExport = shouldExportCode(code) || (appState.exportOverrides && appState.exportOverrides[day]);
             
             if (!shouldExport) {
-                console.log(`Jour ${day} avec code ${code} non exporté (exclu par défaut et non remplacé)`);
+                appLogger.log(`Jour ${day} avec code ${code} non exporté (exclu par défaut et non remplacé)`);
                 continue;
             }
             
@@ -706,11 +739,11 @@ function downloadICSFile() {
             
             // Définir les heures en fonction du code
             const hours = getCodeHours(code);
-            console.log(`Code ${code} pour le jour ${day}: ${hours} heures`);
+            appLogger.log(`Code ${code} pour le jour ${day}: ${hours} heures`);
             
             // Si le code représente une journée entière (0 heures), définir comme un événement toute la journée
             let isAllDay = hours === 0;
-            console.log(`Événement toute la journée: ${isAllDay ? 'Oui' : 'Non'}`);
+            appLogger.log(`Événement toute la journée: ${isAllDay ? 'Oui' : 'Non'}`);
             
             // Formater les dates
             let dtstart, dtend;
@@ -730,7 +763,7 @@ function downloadICSFile() {
                 let endHour = startHour + hours;
                 
                 // Vérifier si le code a des heures spécifiques définies
-                console.log(`Données du code ${code}:`, appState.codesData[code]);
+                appLogger.log(`Données du code ${code}:`, appState.codesData[code]);
                 
                 if (appState.codesData[code] && appState.codesData[code].startTime) {
                     // Format attendu: "HH:MM"
@@ -738,18 +771,18 @@ function downloadICSFile() {
                     if (startTimeParts.length === 2) {
                         startHour = parseInt(startTimeParts[0]);
                         startMinute = parseInt(startTimeParts[1]);
-                        console.log(`Heure de début spécifique trouvée: ${startHour}:${startMinute}`);
+                        appLogger.log(`Heure de début spécifique trouvée: ${startHour}:${startMinute}`);
                     } else {
                         startDate.setHours(startHour, 0, 0);
-                        console.log(`Heure de début par défaut: ${startHour}:00`);
+                        appLogger.log(`Heure de début par défaut: ${startHour}:00`);
                     }
                 } else {
                     startDate.setHours(startHour, 0, 0);
-                    console.log(`Heure de début par défaut: ${startHour}:00`);
+                    appLogger.log(`Heure de début par défaut: ${startHour}:00`);
                 }
                 
                 dtstart = formatDateForICS(startDate);
-                console.log(`Date de début formatée: ${dtstart}`);
+                appLogger.log(`Date de début formatée: ${dtstart}`);
                 
                 if (appState.codesData[code] && appState.codesData[code].endTime) {
                     // Format attendu: "HH:MM"
@@ -758,25 +791,25 @@ function downloadICSFile() {
                         endHour = parseInt(endTimeParts[0]);
                         const endMinute = parseInt(endTimeParts[1]);
                         endDate.setHours(endHour, endMinute, 0);
-                        console.log(`Heure de fin spécifique trouvée: ${endHour}:${endMinute}`);
+                        appLogger.log(`Heure de fin spécifique trouvée: ${endHour}:${endMinute}`);
                     } else {
                         endDate.setHours(endHour, 0, 0);
-                        console.log(`Heure de fin calculée: ${endHour}:00`);
+                        appLogger.log(`Heure de fin calculée: ${endHour}:00`);
                     }
                 } else {
                     endDate.setHours(endHour, 0, 0);
-                    console.log(`Heure de fin calculée: ${endHour}:00`);
+                    appLogger.log(`Heure de fin calculée: ${endHour}:00`);
                 }
                 
                 dtend = formatDateForICS(endDate);
-                console.log(`Date de fin formatée: ${dtend}`);
+                appLogger.log(`Date de fin formatée: ${dtend}`);
             }
             
             // Créer l'événement
             const summary = `${code} - ${getCodeDescription(code)}`;
             const description = `Code: ${code}\nPersonne: ${personName}`;
             
-            console.log(`Création de l'événement: ${summary}`);
+            appLogger.log(`Création de l'événement: ${summary}`);
             
             icsContent += '\r\n' + [
                 'BEGIN:VEVENT',
@@ -795,17 +828,17 @@ function downloadICSFile() {
         // Fermer le calendrier
         icsContent += '\r\nEND:VCALENDAR';
         
-        console.log(`Étape 5: Génération du fichier ICS terminée (${eventCount} événements)`);
-        console.log("Contenu ICS généré, longueur:", icsContent.length);
+        appLogger.log(`Étape 5: Génération du fichier ICS terminée (${eventCount} événements)`);
+        appLogger.log("Contenu ICS généré, longueur:", icsContent.length);
         
         try {
-            console.log("Étape 6: Création du blob et du lien de téléchargement");
+            appLogger.log("Étape 6: Création du blob et du lien de téléchargement");
             // Créer le blob et le lien de téléchargement
             const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-            console.log("Blob créé:", blob.size, "octets");
+            appLogger.log("Blob créé:", blob.size, "octets");
             
             const url = URL.createObjectURL(blob);
-            console.log("URL créée:", url);
+            appLogger.log("URL créée:", url);
             
             // Créer un élément de lien pour le téléchargement
             const a = document.createElement('a');
@@ -814,38 +847,58 @@ function downloadICSFile() {
             a.download = `calendrier-${safePersonName.replace(/\s+/g, '-')}-${year}-${month.toString().padStart(2, '0')}.ics`;
             a.style.display = 'none';
             
-            console.log("Étape 7: Ajout du lien au DOM et déclenchement du téléchargement");
-            console.log("Nom du fichier:", a.download);
+            appLogger.log("Étape 7: Ajout du lien au DOM et déclenchement du téléchargement");
+            appLogger.log("Nom du fichier:", a.download);
             
             // Ajouter l'élément au DOM, déclencher le clic, puis le supprimer
             document.body.appendChild(a);
-            console.log("Lien ajouté au DOM");
+            appLogger.log("Lien ajouté au DOM");
             
             // Utiliser setTimeout pour s'assurer que le navigateur a le temps de traiter le lien
             setTimeout(() => {
-                console.log("Déclenchement du clic sur le lien");
+                appLogger.log("Déclenchement du clic sur le lien");
                 a.click();
                 
                 // Nettoyer après le téléchargement
                 setTimeout(() => {
-                    console.log("Nettoyage: suppression du lien et révocation de l'URL");
+                    appLogger.log("Nettoyage: suppression du lien et révocation de l'URL");
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
-                    console.log("Nettoyage terminé");
+                    appLogger.log("Nettoyage terminé");
                     
                     showToast(`Calendrier exporté avec succès (${eventCount} événements)`, "success");
-                    console.log("=== FIN FONCTION downloadICSFile ===");
+                    appLogger.log("=== FIN FONCTION downloadICSFile ===");
+                    
+                    // Envoyer un événement de succès d'exportation
+                    sendAnalyticsEvent('ics_download_success', {
+                        events_count: eventCount,
+                        file_size: blob.size,
+                        month: month,
+                        year: year
+                    });
                 }, 100);
             }, 100);
         } catch (error) {
-            console.error("Erreur lors de l'exportation du calendrier:", error);
+            appLogger.error("Erreur lors de l'exportation du calendrier:", error);
             showToast("Erreur lors de l'exportation du calendrier", "error");
-            console.log("=== FIN FONCTION downloadICSFile (avec erreur) ===");
+            appLogger.log("=== FIN FONCTION downloadICSFile (avec erreur) ===");
+            
+            // Envoyer un événement d'erreur d'exportation
+            sendAnalyticsEvent('ics_download_error', {
+                error_type: 'exception',
+                error_message: error.message
+            });
         }
     } catch (error) {
-        console.error("Erreur lors de l'exportation du calendrier:", error);
+        appLogger.error("Erreur lors de l'exportation du calendrier:", error);
         showToast("Erreur lors de l'exportation du calendrier", "error");
-        console.log("=== FIN FONCTION downloadICSFile (avec erreur) ===");
+        appLogger.log("=== FIN FONCTION downloadICSFile (avec erreur) ===");
+        
+        // Envoyer un événement d'erreur d'exportation
+        sendAnalyticsEvent('ics_download_error', {
+            error_type: 'exception',
+            error_message: error.message
+        });
     }
 }
 
@@ -857,9 +910,9 @@ function loadExportOverrides() {
     if (savedOverrides) {
         try {
             appState.exportOverrides = JSON.parse(savedOverrides);
-            console.log("Remplacements d'exportation chargés:", appState.exportOverrides);
+            appLogger.log("Remplacements d'exportation chargés:", appState.exportOverrides);
         } catch (error) {
-            console.error("Erreur lors du chargement des remplacements d'exportation:", error);
+            appLogger.error("Erreur lors du chargement des remplacements d'exportation:", error);
             appState.exportOverrides = {};
         }
     } else {

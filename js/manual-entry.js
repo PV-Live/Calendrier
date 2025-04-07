@@ -7,7 +7,7 @@
  * Ajoute un bouton pour permettre à l'utilisateur d'entrer manuellement les codes
  */
 function addManualEntryButton() {
-    console.log("Ajout du bouton de saisie manuelle...");
+    appLogger.log("Ajout du bouton de saisie manuelle...");
     
     // Vérifier si le bouton existe déjà
     if (document.getElementById('manual-entry-button')) {
@@ -33,7 +33,10 @@ function addManualEntryButton() {
  * Affiche le calendrier avec une zone de saisie manuelle
  */
 function showCalendarWithManualEntry() {
-    console.log("Affichage du calendrier avec saisie manuelle");
+    appLogger.log("Affichage du calendrier avec saisie manuelle");
+    
+    // Envoyer un événement d'ouverture de saisie manuelle
+    sendAnalyticsEvent('manual_entry_opened');
     
     // Vérifier si un nom a été saisi
     let personName = '';
@@ -97,7 +100,7 @@ function showCalendarWithManualEntry() {
  * Crée et affiche la zone de saisie manuelle
  */
 function createManualEntryArea() {
-    console.log("Création de la zone de saisie manuelle");
+    appLogger.log("Création de la zone de saisie manuelle");
     
     // Vérifier si la zone existe déjà
     let manualEntryArea = document.getElementById('manual-entry-area');
@@ -272,7 +275,10 @@ function addManualEntryStyles() {
  * Traite les codes entrés manuellement par l'utilisateur
  */
 function processManualCodes() {
-    console.log("Traitement des codes manuels");
+    appLogger.log("Traitement des codes manuels");
+    
+    // Envoyer un événement de début de traitement manuel
+    sendAnalyticsEvent('manual_entry_processing_started');
     
     // Vérifier si un résultat existe
     if (!appState.results) {
@@ -306,17 +312,24 @@ function processManualCodes() {
     
     // Compléter ou tronquer les codes si nécessaire
     if (codes.length < daysInMonth) {
-        console.log(`Complétion des codes manquants (${codes.length} -> ${daysInMonth})`);
+        appLogger.log(`Complétion des codes manquants (${codes.length} -> ${daysInMonth})`);
         while (codes.length < daysInMonth) {
             codes.push(''); // Code vide au lieu d'un code par défaut
         }
     } else if (codes.length > daysInMonth) {
-        console.log(`Troncature des codes excédentaires (${codes.length} -> ${daysInMonth})`);
+        appLogger.log(`Troncature des codes excédentaires (${codes.length} -> ${daysInMonth})`);
         codes.splice(daysInMonth);
     }
     
     // Mettre à jour le résultat
     appState.results.codes = codes;
+    
+    // Envoyer un événement de succès de saisie manuelle
+    sendAnalyticsEvent('manual_entry_success', {
+        codes_count: codes.length,
+        month: month,
+        year: year
+    });
     
     // Mettre à jour l'affichage
     displayResults(appState.results);
