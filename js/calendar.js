@@ -175,59 +175,65 @@ function displayResults(result) {
                     // Définir la couleur de fond de la cellule
                     cell.style.backgroundColor = getCodeColor(code);
                     
-                    // Ajouter une classe et une case à cocher pour les codes qui ne sont pas exportés
+                    // Ajouter une case à cocher pour tous les codes
                     if (code) {
-                        // Vérifier si le code doit être exporté
-                        const shouldExport = shouldExportCode(code) || (appState.exportOverrides && appState.exportOverrides[day]);
+                        // Vérifier si le code est exportable par défaut
+                        const isCodeExportable = shouldExportCode(code);
                         
-                        if (!shouldExport) {
-                            // Ajouter la classe pour les hachures diagonales
+                        // Vérifier si le jour a un remplacement d'exportation
+                        const hasOverride = appState.exportOverrides && appState.exportOverrides[day] !== undefined;
+                        
+                        // Déterminer l'état d'exportation final
+                        // Si un remplacement existe, utiliser sa valeur, sinon utiliser l'état d'exportation par défaut
+                        const isDayExportable = hasOverride ? appState.exportOverrides[day] : isCodeExportable;
+                        
+                        // Ajouter la classe pour les hachures diagonales si le jour n'est pas exportable
+                        if (!isDayExportable) {
                             cell.classList.add('not-exported');
-                            
-                            // Créer un conteneur pour la case à cocher
-                            const checkboxContainer = document.createElement('div');
-                            checkboxContainer.className = 'export-checkbox-container';
-                            
-                            // Créer la case à cocher
-                            const checkbox = document.createElement('input');
-                            checkbox.type = 'checkbox';
-                            checkbox.className = 'export-checkbox';
-                            checkbox.id = `export-day-${day}`;
-                            checkbox.dataset.day = day;
-                            
-                            // Vérifier si le code est déjà marqué pour être exporté
-                            const isOverridden = appState.exportOverrides && appState.exportOverrides[day];
-                            checkbox.checked = isOverridden || false;
-                            
-                            // Ajouter un écouteur d'événement pour mettre à jour les préférences d'exportation
-                            checkbox.addEventListener('change', function() {
-                                // Initialiser le tableau des remplacements s'il n'existe pas
-                                if (!appState.exportOverrides) {
-                                    appState.exportOverrides = {};
-                                }
-                                
-                                // Mettre à jour le remplacement pour ce jour
-                                appState.exportOverrides[day] = this.checked;
-                                
-                                // Sauvegarder les remplacements dans le localStorage
-                                saveExportOverrides();
-                                
-                                // Mettre à jour l'apparence de la cellule
-                                if (this.checked) {
-                                    cell.classList.remove('not-exported');
-                                } else {
-                                    cell.classList.add('not-exported');
-                                }
-                                
-                                console.log(`Jour ${day} (${code}): exportation ${this.checked ? 'activée' : 'désactivée'}`);
-                            });
-                            
-                            // Ajouter la case à cocher au conteneur
-                            checkboxContainer.appendChild(checkbox);
-                            
-                            // Ajouter le conteneur à la cellule
-                            cell.appendChild(checkboxContainer);
                         }
+                        
+                        // Créer un conteneur pour la case à cocher
+                        const checkboxContainer = document.createElement('div');
+                        checkboxContainer.className = 'export-checkbox-container';
+                        
+                        // Créer la case à cocher
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'export-checkbox';
+                        checkbox.id = `export-day-${day}`;
+                        checkbox.dataset.day = day;
+                        
+                        // Définir l'état de la case à cocher en fonction de l'état d'exportation final
+                        checkbox.checked = isDayExportable;
+                        
+                        // Ajouter un écouteur d'événement pour mettre à jour les préférences d'exportation
+                        checkbox.addEventListener('change', function() {
+                            // Initialiser le tableau des remplacements s'il n'existe pas
+                            if (!appState.exportOverrides) {
+                                appState.exportOverrides = {};
+                            }
+                            
+                            // Mettre à jour le remplacement pour ce jour
+                            appState.exportOverrides[day] = this.checked;
+                            
+                            // Sauvegarder les remplacements dans le localStorage
+                            saveExportOverrides();
+                            
+                            // Mettre à jour l'apparence de la cellule
+                            if (this.checked) {
+                                cell.classList.remove('not-exported');
+                            } else {
+                                cell.classList.add('not-exported');
+                            }
+                            
+                            console.log(`Jour ${day} (${code}): exportation ${this.checked ? 'activée' : 'désactivée'}`);
+                        });
+                        
+                        // Ajouter la case à cocher au conteneur
+                        checkboxContainer.appendChild(checkbox);
+                        
+                        // Ajouter le conteneur à la cellule
+                        cell.appendChild(checkboxContainer);
                     }
                     
                     day++;
@@ -291,6 +297,30 @@ function exportToICS() {
         codes: codes.filter(Boolean).join(', ')
     });
     
+    // Récupérer les données des codes
+    console.log("Étape 2.1: Récupération des données des codes");
+    const codesData = appState.codesData || {};
+    console.log("Données des codes:", codesData);
+    
+    // NOUVEAU: Récupérer directement l'état des cases à cocher dans le DOM
+    console.log("Étape 2.2: Lecture directe de l'état des cases à cocher");
+    const exportOverrides = {};
+    
+    // Sélectionner toutes les cases à cocher d'exportation
+    const checkboxes = document.querySelectorAll('.export-checkbox');
+    console.log(`Nombre de cases à cocher trouvées: ${checkboxes.length}`);
+    
+    // Parcourir toutes les cases à cocher et stocker leur état
+    checkboxes.forEach(checkbox => {
+        const day = parseInt(checkbox.dataset.day);
+        if (!isNaN(day)) {
+            exportOverrides[day] = checkbox.checked;
+            console.log(`Case à cocher du jour ${day}: ${checkbox.checked ? 'cochée' : 'décochée'}`);
+        }
+    });
+    
+    console.log("État des cases à cocher:", exportOverrides);
+    
     console.log("Étape 3: Création de l'en-tête du fichier ICS");
     // Créer l'en-tête du fichier ICS
     let icsContent = [
@@ -304,6 +334,8 @@ function exportToICS() {
     console.log("Étape 4: Ajout des événements au fichier ICS");
     // Ajouter les événements
     let eventCount = 0;
+    let skippedCount = 0;
+    
     for (let day = 1; day <= codes.length; day++) {
         const code = codes[day - 1];
         
@@ -314,16 +346,32 @@ function exportToICS() {
         
         console.log(`Traitement du jour ${day} avec code ${code}`);
         
+        // Vérifier directement si ce jour doit être exporté en fonction de l'état de sa case à cocher
+        const isDayExportable = exportOverrides[day] === true;
+        
+        console.log(`Jour ${day}: Code ${code}, état de la case à cocher: ${isDayExportable ? 'cochée' : 'décochée'}`);
+        
+        // Si le jour n'est pas exportable, passer au jour suivant
+        if (!isDayExportable) {
+            console.log(`Jour ${day}: Non exportable (case décochée), événement ignoré`);
+            skippedCount++;
+            continue;
+        }
+        
         // Créer la date de début
         const startDate = new Date(year, month - 1, day);
         const endDate = new Date(year, month - 1, day);
         
-        // Définir les heures en fonction du code
-        const hours = getCodeHours(code);
-        console.log(`Code ${code} pour le jour ${day}: ${hours} heures`);
+        // Récupérer les données du code
+        const codeData = codesData[code] || {};
         
-        // Si le code représente une journée entière (0 heures), définir comme un événement toute la journée
-        let isAllDay = hours === 0;
+        // Vérifier si le code a des heures spécifiques définies
+        const hasSpecificTimes = codeData && codeData.startTime && codeData.endTime;
+        console.log(`Le code ${code} a des heures spécifiques: ${hasSpecificTimes ? 'Oui' : 'Non'}`);
+        
+        // Par défaut, considérer que ce n'est PAS un événement toute la journée
+        // Un événement est toute la journée seulement si explicitement configuré ainsi
+        const isAllDay = codeData && codeData.isAllDay === true;
         console.log(`Événement toute la journée: ${isAllDay ? 'Oui' : 'Non'}`);
         
         // Formater les dates
@@ -338,63 +386,83 @@ function exportToICS() {
             dtend = formatDateForICS(endDate, true);
             console.log(`Événement toute la journée: ${startDate.toLocaleDateString()} à ${endDate.toLocaleDateString()}`);
         } else {
-            // Définir les heures de début et de fin en fonction du code
-            // Extraire les heures de début et de fin à partir du code si disponible
+            // Définir les heures de début et de fin
             let startHour = 8; // Par défaut, commencer à 8h
-            let endHour = startHour + hours;
+            let startMinute = 0;
+            let endHour = 17; // Par défaut, finir à 17h
+            let endMinute = 0;
             
-            // Vérifier si le code a des heures spécifiques définies
-            const codeData = appState.codesData[code];
-            console.log(`Données du code ${code}:`, codeData);
-            
-            if (codeData && codeData.startTime) {
+            // Utiliser les heures spécifiques si disponibles
+            if (hasSpecificTimes) {
                 // Format attendu: "HH:MM"
                 const startTimeParts = codeData.startTime.split(':');
                 if (startTimeParts.length === 2) {
                     startHour = parseInt(startTimeParts[0]);
-                    const startMinute = parseInt(startTimeParts[1]);
-                    startDate.setHours(startHour, startMinute, 0);
-                    console.log(`Heure de début spécifique: ${startHour}:${startMinute}`);
-                } else {
-                    startDate.setHours(startHour, 0, 0);
-                    console.log(`Heure de début par défaut: ${startHour}:00`);
+                    startMinute = parseInt(startTimeParts[1]);
+                    console.log(`Heure de début spécifique trouvée: ${startHour}:${startMinute}`);
                 }
-            } else {
-                startDate.setHours(startHour, 0, 0);
-                console.log(`Heure de début par défaut: ${startHour}:00`);
-            }
-            
-            dtstart = formatDateForICS(startDate);
-            console.log(`Date de début formatée: ${dtstart}`);
-            
-            if (codeData && codeData.endTime) {
-                // Format attendu: "HH:MM"
+                
                 const endTimeParts = codeData.endTime.split(':');
                 if (endTimeParts.length === 2) {
                     endHour = parseInt(endTimeParts[0]);
-                    const endMinute = parseInt(endTimeParts[1]);
-                    endDate.setHours(endHour, endMinute, 0);
-                    console.log(`Heure de fin spécifique: ${endHour}:${endMinute}`);
-                } else {
-                    endDate.setHours(endHour, 0, 0);
-                    console.log(`Heure de fin calculée: ${endHour}:00`);
+                    endMinute = parseInt(endTimeParts[1]);
+                    console.log(`Heure de fin spécifique trouvée: ${endHour}:${endMinute}`);
                 }
-            } else {
-                endDate.setHours(endHour, 0, 0);
-                console.log(`Heure de fin calculée: ${endHour}:00`);
             }
             
+            // Vérifier si c'est un code de nuit
+            const isNightShift = codeData && codeData.isOvernight;
+            
+            // Définir la date et l'heure de début
+            startDate.setHours(startHour, startMinute, 0);
+            dtstart = formatDateForICS(startDate);
+            
+            console.log(`Code: ${code}, isNightShift: ${isNightShift}, startTime: ${startHour}:${startMinute}, endTime: ${endHour}:${endMinute}`);
+            
+            // Gérer les codes de nuit (qui s'étendent sur deux jours)
+            if (isNightShift) {
+                // Pour les codes de nuit, la date de fin est le jour suivant
+                endDate.setDate(endDate.getDate() + 1);
+                console.log(`Code de nuit détecté: ${code}, date de fin ajustée au jour suivant (${endDate.toISOString()})`);
+            }
+            
+            // Définir la date et l'heure de fin
+            endDate.setHours(endHour, endMinute, 0);
             dtend = formatDateForICS(endDate);
-            console.log(`Date de fin formatée: ${dtend}`);
+            
+            console.log(`Événement final: du ${dtstart} au ${dtend}`);
+            
+            // Vérifier que l'heure de fin est après l'heure de début
+            if (new Date(dtend) <= new Date(dtstart)) {
+                console.warn(`Attention: L'heure de fin (${dtend}) est avant ou égale à l'heure de début (${dtstart}) pour le code ${code} le jour ${day}`);
+                // Si ce n'est pas un quart de nuit, ajuster l'heure de fin pour qu'elle soit au moins 1 heure après le début
+                if (!isNightShift) {
+                    endDate.setTime(startDate.getTime() + (60 * 60 * 1000)); // +1 heure
+                    dtend = formatDateForICS(endDate);
+                    console.log(`Heure de fin ajustée à ${dtend}`);
+                }
+            }
         }
         
         // Créer l'événement
         const summary = `${code} - ${getCodeDescription(code)}`;
-        const description = `Code: ${code}\nHeures: ${hours}h\nPersonne: ${personName}`;
+        let description = `Code: ${code}\nPersonne: ${personName}`;
         
-        console.log(`Création de l'événement: ${summary}`);
+        // Ajouter des informations sur les heures précises
+        if (hasSpecificTimes) {
+            description += `\nHoraire: ${codeData.startTime} - ${codeData.endTime}`;
+            
+            // Ajouter une indication si c'est un code de nuit
+            if (codeData && codeData.isOvernight) {
+                description += ` (sur deux jours)`;
+            }
+        }
         
-        icsContent += '\r\n' + [
+        // Pour les codes de nuit, ajouter des propriétés supplémentaires
+        const transparency = (codeData && codeData.isOvernight) ? 'TRANSPARENT' : 'OPAQUE';
+        
+        // Créer les propriétés de base de l'événement
+        let eventProperties = [
             'BEGIN:VEVENT',
             `UID:${generateUID(year, month, day, code)}`,
             `DTSTAMP:${formatDateForICS(new Date())}`,
@@ -402,8 +470,26 @@ function exportToICS() {
             `DTEND${isAllDay ? ';VALUE=DATE' : ''}:${dtend}`,
             `SUMMARY:${summary}`,
             `DESCRIPTION:${description}`,
-            'END:VEVENT'
-        ].join('\r\n');
+            `TRANSP:${transparency}`
+        ];
+        
+        // Pour les codes de nuit, ajouter des propriétés supplémentaires pour garantir l'affichage correct
+        if (codeData && codeData.isOvernight) {
+            // Ajouter une règle de récurrence pour indiquer qu'il s'agit d'un événement unique
+            eventProperties.push('RRULE:FREQ=DAILY;COUNT=1');
+            
+            // Ajouter une propriété X-MICROSOFT-CDO-BUSYSTATUS pour les clients Microsoft
+            eventProperties.push('X-MICROSOFT-CDO-BUSYSTATUS:BUSY');
+            
+            // Ajouter une propriété X-APPLE-TRAVEL-ADVISORY-BEHAVIOR pour les clients Apple
+            eventProperties.push('X-APPLE-TRAVEL-ADVISORY-BEHAVIOR:AUTOMATIC');
+        }
+        
+        // Fermer l'événement
+        eventProperties.push('END:VEVENT');
+        
+        // Ajouter l'événement au contenu ICS
+        icsContent += '\r\n' + eventProperties.join('\r\n');
         
         eventCount++;
     }
@@ -411,7 +497,7 @@ function exportToICS() {
     // Fermer le calendrier
     icsContent += '\r\nEND:VCALENDAR';
     
-    console.log(`Étape 5: Génération du fichier ICS terminée (${eventCount} événements)`);
+    console.log(`Étape 5: Génération du fichier ICS terminée (${eventCount} événements, ${skippedCount} ignorés)`);
     console.log("Contenu ICS généré, longueur:", icsContent.length);
     
     try {
@@ -437,28 +523,21 @@ function exportToICS() {
         document.body.appendChild(a);
         console.log("Lien ajouté au DOM");
         
-        // Utiliser setTimeout pour s'assurer que le navigateur a le temps de traiter le lien
-        setTimeout(() => {
-            console.log("Déclenchement du clic sur le lien");
-            a.click();
-            
-            // Nettoyer après le téléchargement
-            setTimeout(() => {
-                console.log("Nettoyage: suppression du lien et révocation de l'URL");
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                console.log("Nettoyage terminé");
-            }, 100);
-        }, 0);
+        a.click();
+        console.log("Clic sur le lien déclenché");
         
-        console.log("Étape 8: Affichage du message de succès");
-        showToast("Calendrier exporté avec succès", "success");
-        console.log("=== FIN FONCTION exportToICS ===");
+        // Nettoyer après le téléchargement
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            console.log("Nettoyage terminé");
+            
+            showToast(`Calendrier exporté avec succès (${eventCount} événements)`, "success");
+            console.log("=== FIN FONCTION exportToICS ===");
+        }, 100);
     } catch (error) {
-        console.error("ERREUR lors de l'exportation ICS:", error);
-        console.error("Message d'erreur:", error.message);
-        console.error("Stack trace:", error.stack);
-        showToast("Erreur lors de l'exportation: " + error.message, "error");
+        console.error("Erreur lors de l'exportation du calendrier:", error);
+        showToast("Erreur lors de l'exportation du calendrier", "error");
         console.log("=== FIN FONCTION exportToICS (avec erreur) ===");
     }
 }
@@ -627,14 +706,11 @@ function downloadICSFile() {
             
             // Définir les heures en fonction du code
             const hours = getCodeHours(code);
-            const codeData = appState.codesData[code];
+            console.log(`Code ${code} pour le jour ${day}: ${hours} heures`);
             
-            // Vérifier si le code a des heures spécifiques définies
-            const hasSpecificTimes = codeData && codeData.startTime && codeData.endTime;
-            
-            // Désormais, on utilise toujours les heures précises si elles sont disponibles
-            // On ne met plus d'événements sur toute la journée, sauf pour les codes sans heures (0)
-            let isAllDay = hours === 0 && !hasSpecificTimes;
+            // Si le code représente une journée entière (0 heures), définir comme un événement toute la journée
+            let isAllDay = hours === 0;
+            console.log(`Événement toute la journée: ${isAllDay ? 'Oui' : 'Non'}`);
             
             // Formater les dates
             let dtstart, dtend;
@@ -648,75 +724,61 @@ function downloadICSFile() {
                 dtend = formatDateForICS(endDate, true);
             } else {
                 // Définir les heures de début et de fin en fonction du code
+                // Extraire les heures de début et de fin à partir du code si disponible
                 let startHour = 8; // Par défaut, commencer à 8h
                 let startMinute = 0;
-                let endHour = startHour + Math.floor(hours);
-                let endMinute = Math.round((hours % 1) * 60);
+                let endHour = startHour + hours;
                 
-                // Utiliser les heures spécifiques si disponibles
-                if (hasSpecificTimes) {
+                // Vérifier si le code a des heures spécifiques définies
+                console.log(`Données du code ${code}:`, appState.codesData[code]);
+                
+                if (appState.codesData[code] && appState.codesData[code].startTime) {
                     // Format attendu: "HH:MM"
-                    const startTimeParts = codeData.startTime.split(':');
+                    const startTimeParts = appState.codesData[code].startTime.split(':');
                     if (startTimeParts.length === 2) {
                         startHour = parseInt(startTimeParts[0]);
                         startMinute = parseInt(startTimeParts[1]);
+                        console.log(`Heure de début spécifique trouvée: ${startHour}:${startMinute}`);
+                    } else {
+                        startDate.setHours(startHour, 0, 0);
+                        console.log(`Heure de début par défaut: ${startHour}:00`);
                     }
-                    
-                    const endTimeParts = codeData.endTime.split(':');
+                } else {
+                    startDate.setHours(startHour, 0, 0);
+                    console.log(`Heure de début par défaut: ${startHour}:00`);
+                }
+                
+                dtstart = formatDateForICS(startDate);
+                console.log(`Date de début formatée: ${dtstart}`);
+                
+                if (appState.codesData[code] && appState.codesData[code].endTime) {
+                    // Format attendu: "HH:MM"
+                    const endTimeParts = appState.codesData[code].endTime.split(':');
                     if (endTimeParts.length === 2) {
                         endHour = parseInt(endTimeParts[0]);
-                        endMinute = parseInt(endTimeParts[1]);
+                        const endMinute = parseInt(endTimeParts[1]);
+                        endDate.setHours(endHour, endMinute, 0);
+                        console.log(`Heure de fin spécifique trouvée: ${endHour}:${endMinute}`);
+                    } else {
+                        endDate.setHours(endHour, 0, 0);
+                        console.log(`Heure de fin calculée: ${endHour}:00`);
                     }
+                } else {
+                    endDate.setHours(endHour, 0, 0);
+                    console.log(`Heure de fin calculée: ${endHour}:00`);
                 }
                 
-                // Vérifier si c'est un code de nuit
-                const isNightShift = codeData && codeData.isOvernight;
-                
-                // Définir la date et l'heure de début
-                startDate.setHours(startHour, startMinute, 0);
-                dtstart = formatDateForICS(startDate);
-                
-                console.log(`Code: ${code}, isNightShift: ${isNightShift}, startTime: ${startHour}:${startMinute}, endTime: ${endHour}:${endMinute}`);
-                
-                // Gérer les codes de nuit (qui s'étendent sur deux jours)
-                if (isNightShift) {
-                    // Pour les codes de nuit, la date de fin est le jour suivant
-                    endDate.setDate(endDate.getDate() + 1);
-                    console.log(`Code de nuit détecté: ${code}, date de fin ajustée au jour suivant (${endDate.toISOString()})`);
-                }
-                
-                // Définir la date et l'heure de fin
-                endDate.setHours(endHour, endMinute, 0);
                 dtend = formatDateForICS(endDate);
-                
-                console.log(`Événement final: du ${dtstart} au ${dtend}`);
-                
-                // Vérifier que l'heure de fin est après l'heure de début
-                if (new Date(dtend) <= new Date(dtstart)) {
-                    console.warn(`Attention: L'heure de fin (${dtend}) est avant ou égale à l'heure de début (${dtstart}) pour le code ${code} le jour ${day}`);
-                    // Si ce n'est pas un quart de nuit, ajuster l'heure de fin pour qu'elle soit au moins 1 heure après le début
-                    if (!isNightShift) {
-                        endDate.setTime(startDate.getTime() + (60 * 60 * 1000)); // +1 heure
-                        dtend = formatDateForICS(endDate);
-                        console.log(`Heure de fin ajustée à ${dtend}`);
-                    }
-                }
+                console.log(`Date de fin formatée: ${dtend}`);
             }
             
             // Créer l'événement
             const summary = `${code} - ${getCodeDescription(code)}`;
-            let description = `Code: ${code}\nHeures: ${hours}h\nPersonne: ${personName}`;
+            const description = `Code: ${code}\nPersonne: ${personName}`;
             
-            // Ajouter des informations sur les heures précises pour les codes de nuit
-            if (codeData && codeData.isOvernight && codeData.startTime && codeData.endTime) {
-                description += `\nHoraire: ${codeData.startTime} - ${codeData.endTime} (sur deux jours)`;
-            }
+            console.log(`Création de l'événement: ${summary}`);
             
-            // Pour les codes de nuit, ajouter des propriétés supplémentaires
-            const transparency = (codeData && codeData.isOvernight) ? 'TRANSPARENT' : 'OPAQUE';
-            
-            // Créer les propriétés de base de l'événement
-            let eventProperties = [
+            icsContent += '\r\n' + [
                 'BEGIN:VEVENT',
                 `UID:${generateUID(year, month, day, code)}`,
                 `DTSTAMP:${formatDateForICS(new Date())}`,
@@ -724,26 +786,8 @@ function downloadICSFile() {
                 `DTEND${isAllDay ? ';VALUE=DATE' : ''}:${dtend}`,
                 `SUMMARY:${summary}`,
                 `DESCRIPTION:${description}`,
-                `TRANSP:${transparency}`
-            ];
-            
-            // Pour les codes de nuit, ajouter des propriétés supplémentaires pour garantir l'affichage correct
-            if (codeData && codeData.isOvernight) {
-                // Ajouter une règle de récurrence pour indiquer qu'il s'agit d'un événement unique
-                eventProperties.push('RRULE:FREQ=DAILY;COUNT=1');
-                
-                // Ajouter une propriété X-MICROSOFT-CDO-BUSYSTATUS pour les clients Microsoft
-                eventProperties.push('X-MICROSOFT-CDO-BUSYSTATUS:BUSY');
-                
-                // Ajouter une propriété X-APPLE-TRAVEL-ADVISORY-BEHAVIOR pour les clients Apple
-                eventProperties.push('X-APPLE-TRAVEL-ADVISORY-BEHAVIOR:AUTOMATIC');
-            }
-            
-            // Fermer l'événement
-            eventProperties.push('END:VEVENT');
-            
-            // Ajouter l'événement au contenu ICS
-            icsContent += '\r\n' + eventProperties.join('\r\n');
+                'END:VEVENT'
+            ].join('\r\n');
             
             eventCount++;
         }
@@ -751,44 +795,57 @@ function downloadICSFile() {
         // Fermer le calendrier
         icsContent += '\r\nEND:VCALENDAR';
         
-        console.log(`Génération du fichier ICS terminée (${eventCount} événements)`);
+        console.log(`Étape 5: Génération du fichier ICS terminée (${eventCount} événements)`);
+        console.log("Contenu ICS généré, longueur:", icsContent.length);
         
-        // Créer un élément a pour le téléchargement
-        const safePersonName = typeof personName === 'string' ? personName : String(personName || 'calendrier');
-        const fileName = `calendrier-${safePersonName.replace(/\s+/g, '-')}-${year}-${month.toString().padStart(2, '0')}.ics`;
-        
-        // Méthode 1: Utilisation de Blob et URL.createObjectURL
-        console.log("Méthode 1: Utilisation de Blob et URL.createObjectURL");
-        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-        console.log("Blob créé:", blob.size, "octets");
-        
-        const url = URL.createObjectURL(blob);
-        console.log("URL créée:", url);
-        
-        // Créer un élément de lien pour le téléchargement
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        a.style.display = 'none';
-        
-        // Ajouter l'élément au DOM, déclencher le clic, puis le supprimer
-        document.body.appendChild(a);
-        console.log("Lien ajouté au DOM, déclenchement du clic");
-        a.click();
-        
-        // Nettoyer après le téléchargement
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            console.log("Nettoyage effectué");
-        }, 1000);
-        
-        showToast("Calendrier exporté avec succès", "success");
+        try {
+            console.log("Étape 6: Création du blob et du lien de téléchargement");
+            // Créer le blob et le lien de téléchargement
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            console.log("Blob créé:", blob.size, "octets");
+            
+            const url = URL.createObjectURL(blob);
+            console.log("URL créée:", url);
+            
+            // Créer un élément de lien pour le téléchargement
+            const a = document.createElement('a');
+            a.href = url;
+            const safePersonName = typeof personName === 'string' ? personName : String(personName || 'calendrier');
+            a.download = `calendrier-${safePersonName.replace(/\s+/g, '-')}-${year}-${month.toString().padStart(2, '0')}.ics`;
+            a.style.display = 'none';
+            
+            console.log("Étape 7: Ajout du lien au DOM et déclenchement du téléchargement");
+            console.log("Nom du fichier:", a.download);
+            
+            // Ajouter l'élément au DOM, déclencher le clic, puis le supprimer
+            document.body.appendChild(a);
+            console.log("Lien ajouté au DOM");
+            
+            // Utiliser setTimeout pour s'assurer que le navigateur a le temps de traiter le lien
+            setTimeout(() => {
+                console.log("Déclenchement du clic sur le lien");
+                a.click();
+                
+                // Nettoyer après le téléchargement
+                setTimeout(() => {
+                    console.log("Nettoyage: suppression du lien et révocation de l'URL");
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    console.log("Nettoyage terminé");
+                    
+                    showToast(`Calendrier exporté avec succès (${eventCount} événements)`, "success");
+                    console.log("=== FIN FONCTION downloadICSFile ===");
+                }, 100);
+            }, 100);
+        } catch (error) {
+            console.error("Erreur lors de l'exportation du calendrier:", error);
+            showToast("Erreur lors de l'exportation du calendrier", "error");
+            console.log("=== FIN FONCTION downloadICSFile (avec erreur) ===");
+        }
     } catch (error) {
-        console.error("ERREUR lors de l'exportation ICS:", error);
-        console.error("Message d'erreur:", error.message);
-        console.error("Stack trace:", error.stack);
-        showToast("Erreur lors de l'exportation: " + error.message, "error");
+        console.error("Erreur lors de l'exportation du calendrier:", error);
+        showToast("Erreur lors de l'exportation du calendrier", "error");
+        console.log("=== FIN FONCTION downloadICSFile (avec erreur) ===");
     }
 }
 

@@ -211,9 +211,6 @@
       "color": "#0433ff"
     }
   },
-  "apiSettings": {
-    "model": "mistral-ocr-latest",
-    "strictMode": true
-  },
+  
   "exportDate": "2025-03-30T13:32:33+02:00"
 }

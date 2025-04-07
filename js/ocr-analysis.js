@@ -8,7 +8,7 @@
  * @async
  */
 async function analyzeSchedule() {
-    console.log("Analyse du planning...");
+    /*console.log("Analyse du planning..."); */
     
     // Vérifier si un fichier a été chargé
     if (!appState.imageFile) {
@@ -59,22 +59,22 @@ async function analyzeSchedule() {
     
     try {
         // Charger les paramètres API
-        console.log("Chargement des paramètres API pour l'analyse...");
+        /*console.log("Chargement des paramètres API pour l'analyse...");*/
         await loadApiSettings();
         
         const apiKey = appState.apiSettings && appState.apiSettings.apiKey;
         const strictMode = appState.apiSettings && appState.apiSettings.strictMode !== false;
-        
+        /*
         console.log("Paramètres API chargés pour l'analyse:", {
             hasApiKey: !!apiKey,
             strictMode
-        });
+        }); */
         
         if (!apiKey) {
             showToast("Veuillez configurer votre clé API dans les paramètres ou utiliser la saisie manuelle", "warning");
             
             // Ouvrir automatiquement l'interface de saisie manuelle
-            console.log("Aucune clé API configurée, ouverture de l'interface de saisie manuelle");
+           /* console.log("Aucune clé API configurée, ouverture de l'interface de saisie manuelle");*/
             
             // Vérifier si la fonction showCalendarWithManualEntry est disponible
             if (typeof showCalendarWithManualEntry === 'function') {
@@ -90,8 +90,8 @@ async function analyzeSchedule() {
         }
         
         // Analyser l'image avec Google Vision
-        console.log("Analyse de l'image avec Google Vision...");
-        console.log("Utilisation de la clé API:", apiKey ? "Présente" : "Manquante");
+        /*console.log("Analyse de l'image avec Google Vision...");
+        console.log("Utilisation de la clé API:", apiKey ? "Présente" : "Manquante");*/
         
         const ocrResult = await analyzeImageWithGoogleVision(appState.imageFile, apiKey);
         
@@ -100,10 +100,10 @@ async function analyzeSchedule() {
             return;
         }
         
-        console.log("Résultat OCR obtenu:", ocrResult);
+        /*console.log("Résultat OCR obtenu:", ocrResult);*/
         
         // Analyser le texte OCR
-        console.log(`Analyse du texte OCR pour ${personName}...`);
+        /*console.log(`Analyse du texte OCR pour ${personName}...`);*/
         const result = await analyzeOcrText(ocrResult.ocrText, personName, month, year);
         
         // Mettre à jour l'état de l'application avec les résultats
@@ -202,7 +202,7 @@ async function analyzeSchedule() {
             showToast(`Aucun résultat trouvé pour ${personName}`, "error");
         }
         
-        console.log("Analyse terminée avec succès");
+        /*console.log("Analyse terminée avec succès"); */
         showToast("Analyse terminée avec succès", "success");
         
     } catch (error) {
@@ -225,7 +225,7 @@ async function analyzeSchedule() {
  * @returns {Promise<Object>} - Résultat de l'analyse
  */
 async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), year = getCurrentYear()) {
-    console.log("Analyse du texte OCR:", ocrText);
+    /*console.log("Analyse du texte OCR:", ocrText);*/
     
     // Nettoyer le texte OCR
     ocrText = cleanOcrText(ocrText);
@@ -256,7 +256,7 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
         
         // Traiter le texte OCR en fonction du format
         if (isMarkdownTable) {
-            console.log("Format détecté: Tableau Markdown");
+            /*console.log("Format détecté: Tableau Markdown");*/
             
             // Chercher la ligne contenant le nom de la personne
             let personLine = null;
@@ -275,7 +275,7 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
             }
             
             if (personLine) {
-                console.log(`Ligne trouvée pour ${personName}:`, personLine);
+                /*console.log(`Ligne trouvée pour ${personName}:`, personLine);*/
                 result.personLine = personLine;
                 
                 // Extraire les codes de la ligne
@@ -285,7 +285,7 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
                 if (cells[0] === '') cells.shift();
                 if (cells[cells.length - 1] === '') cells.pop();
                 
-                console.log("Cellules extraites:", cells);
+                /*console.log("Cellules extraites:", cells);*/
                 
                 // La première cellule contient généralement le nom
                 // La deuxième cellule contient généralement le pourcentage
@@ -308,7 +308,7 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
                         const similarCode = findMostSimilarCode(code, appState.validCodes);
                         
                         if (similarCode) {
-                            console.log(`Code corrigé: ${code} -> ${similarCode}`);
+                            /* console.log(`Code corrigé: ${code} -> ${similarCode}`); */
                             codes.push(similarCode);
                         } else {
                             codes.push('');
@@ -316,7 +316,7 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
                     }
                 }
                 
-                console.log("Codes extraits:", codes);
+                /*console.log("Codes extraits:", codes);*/
                 
                 // Compléter ou tronquer les codes si nécessaire
                 if (codes.length < daysInMonth) {
@@ -336,7 +336,7 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
                 console.log(`Personne non trouvée: ${personName}`);
             }
         } else {
-            console.log("Format détecté: Texte brut");
+            /*console.log("Format détecté: Texte brut");*/
             
             // Chercher la ligne contenant le nom de la personne
             let personLineIndex = -1;
@@ -350,7 +350,7 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
                 if (normalizedLine.includes(normalizedPersonName)) {
                     personLineIndex = i;
                     personLine = line;
-                    console.log(`Ligne trouvée pour ${personName} à l'index ${personLineIndex}: ${line}`);
+                   /* console.log(`Ligne trouvée pour ${personName} à l'index ${personLineIndex}: ${line}`); */
                     break;
                 }
             }
@@ -396,7 +396,7 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
                         const similarCode = findMostSimilarCode(cleanWord, appState.validCodes);
                         
                         if (similarCode) {
-                            console.log(`Code corrigé: ${cleanWord} -> ${similarCode}`);
+                            /* console.log(`Code corrigé: ${cleanWord} -> ${similarCode}`); */
                             codes.push(similarCode);
                         }
                     }
@@ -412,7 +412,7 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
                         // Vérifier si la ligne contient un nom de personne (généralement suivi de "SF" ou d'un pourcentage)
                         if ((normalizedLine.includes("SF") || normalizedLine.includes("%")) && 
                             !normalizedLine.includes(normalizedPersonName)) {
-                            console.log(`Détection d'une autre personne à la ligne ${i}, arrêt de l'extraction`);
+                            /*console.log(`Détection d'une autre personne à la ligne ${i}, arrêt de l'extraction`);*/
                             break;
                         }
                     }
@@ -443,7 +443,7 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
                             const similarCode = findMostSimilarCode(cleanWord, appState.validCodes);
                             
                             if (similarCode) {
-                                console.log(`Code corrigé: ${cleanWord} -> ${similarCode}`);
+                                /* console.log(`Code corrigé: ${cleanWord} -> ${similarCode}`); */
                                 codes.push(similarCode);
                                 
                                 // Arrêter si on a assez de codes
@@ -455,16 +455,16 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
                     }
                 }
                 
-                console.log("Codes extraits:", codes);
+                 /* console.log("Codes extraits:", codes); */
                 
                 // Compléter ou tronquer les codes si nécessaire
                 if (codes.length < daysInMonth) {
-                    console.log(`Complétion des codes manquants (${codes.length} -> ${daysInMonth})`);
+                   /* console.log(`Complétion des codes manquants (${codes.length} -> ${daysInMonth})`); */
                     while (codes.length < daysInMonth) {
                         codes.push('');
                     }
                 } else if (codes.length > daysInMonth) {
-                    console.log(`Troncature des codes excédentaires (${codes.length} -> ${daysInMonth})`);
+                   /* console.log(`Troncature des codes excédentaires (${codes.length} -> ${daysInMonth})`); */
                     codes.splice(daysInMonth);
                 }
                 
