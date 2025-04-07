@@ -116,16 +116,8 @@ function createManualEntryArea() {
         simpleTab.className = 'tab active';
         simpleTab.textContent = 'Saisie simple';
         simpleTab.dataset.tab = 'simple';
-        simpleTab.onclick = () => switchTab('simple');
-        
-        const ocrTab = document.createElement('div');
-        ocrTab.className = 'tab';
-        ocrTab.textContent = 'Texte OCR';
-        ocrTab.dataset.tab = 'ocr';
-        ocrTab.onclick = () => switchTab('ocr');
         
         tabsContainer.appendChild(simpleTab);
-        tabsContainer.appendChild(ocrTab);
         manualEntryArea.appendChild(tabsContainer);
         
         // Créer le contenu de l'onglet "Saisie simple"
@@ -143,23 +135,7 @@ function createManualEntryArea() {
         simpleInput.rows = 5;
         simpleTabContent.appendChild(simpleInput);
         
-        // Créer le contenu de l'onglet "Texte OCR"
-        const ocrTabContent = document.createElement('div');
-        ocrTabContent.id = 'ocr-tab-content';
-        ocrTabContent.className = 'tab-content';
-        
-        const ocrDescription = document.createElement('p');
-        ocrDescription.textContent = 'Collez le texte brut OCR extrait de l\'image. L\'application tentera d\'extraire automatiquement les codes.';
-        ocrTabContent.appendChild(ocrDescription);
-        
-        const ocrInput = document.createElement('textarea');
-        ocrInput.id = 'ocr-text-input';
-        ocrInput.placeholder = 'Collez ici le texte OCR brut...';
-        ocrInput.rows = 10;
-        ocrTabContent.appendChild(ocrInput);
-        
         manualEntryArea.appendChild(simpleTabContent);
-        manualEntryArea.appendChild(ocrTabContent);
         
         // Créer les boutons
         const buttonsContainer = document.createElement('div');
@@ -188,7 +164,6 @@ function createManualEntryArea() {
     } else {
         // Réinitialiser les champs
         document.getElementById('manual-codes-input').value = '';
-        document.getElementById('ocr-text-input').value = '';
         
         // Afficher la zone
         manualEntryArea.style.display = 'block';
@@ -216,8 +191,6 @@ function switchTab(tabId) {
     // Activer le contenu de l'onglet sélectionné
     if (tabId === 'simple') {
         document.getElementById('simple-tab-content').classList.add('active');
-    } else if (tabId === 'ocr') {
-        document.getElementById('ocr-tab-content').classList.add('active');
     }
 }
 
@@ -329,18 +302,6 @@ function processManualCodes() {
         // Traiter les codes
         const codesText = input.value.trim();
         codes = codesText.split(/[\s,;]+/).filter(code => code.trim() !== '');
-    } else {
-        // Traitement de l'onglet "Texte OCR"
-        const input = document.getElementById('ocr-text-input');
-        
-        if (!input || !input.value.trim()) {
-            showToast('Veuillez coller le texte OCR', 'error');
-            return;
-        }
-        
-        // Analyser le texte OCR
-        const ocrText = input.value.trim();
-        codes = parseOcrTextManually(ocrText, daysInMonth);
     }
     
     // Compléter ou tronquer les codes si nécessaire
@@ -364,142 +325,9 @@ function processManualCodes() {
     showToast('Codes appliqués avec succès', 'success');
 }
 
-/**
- * Analyse le texte brut OCR pour extraire les codes
- * @param {string} ocrText - Texte brut OCR
- * @param {number} daysInMonth - Nombre de jours dans le mois
- * @returns {string[]} - Tableau des codes extraits
- */
-function parseOcrTextManually(ocrText, daysInMonth) {
-    console.log("Analyse manuelle du texte OCR:", ocrText);
-    
-    // Diviser le texte en lignes
-    const lines = ocrText.split(/\r?\n/).map(line => line.trim()).filter(line => line);
-    console.log("Lignes extraites:", lines);
-    
-    // Ignorer les premières lignes qui contiennent généralement le nom et le pourcentage
-    // On cherche l'index à partir duquel commencer à extraire les codes
-    let startIndex = 0;
-    
-    // Chercher des indices pour identifier où commencent les codes
-    // Typiquement après le nom et le pourcentage (ex: "80 %")
-    for (let i = 0; i < Math.min(5, lines.length); i++) {
-        if (lines[i].includes('%') || /^\d+\s*%$/.test(lines[i])) {
-            startIndex = i + 1;
-            console.log(`Pourcentage trouvé à la ligne ${i}, début de l'extraction à partir de la ligne ${startIndex}`);
-            break;
-        }
-    }
-    
-    // Si on n'a pas trouvé de pourcentage, essayer de détecter le nom pour le sauter
-    if (startIndex === 0) {
-        for (let i = 0; i < Math.min(3, lines.length); i++) {
-            // Si la ligne contient des mots en majuscules (probablement un nom)
-            if (/[A-Z]{2,}/.test(lines[i]) && lines[i].length > 5) {
-                startIndex = i + 1;
-                console.log(`Nom probable trouvé à la ligne ${i}, début de l'extraction à partir de la ligne ${startIndex}`);
-                break;
-            }
-        }
-    }
-    
-    // Extraire les codes potentiels
-    let potentialCodes = [];
-    
-    // Vérifier si le texte est au format Markdown (tableau)
-    const isMarkdownTable = ocrText.includes('|');
-    
-    if (isMarkdownTable) {
-        console.log("Format détecté: Tableau Markdown");
-        
-        // Chercher la ligne contenant le nom de la personne
-        let personLine = null;
-        
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            
-            // Vérifier si la ligne contient le nom de la personne
-            if (line.includes('|')) {
-                // Extraire les cellules
-                const cells = line.split('|').map(cell => cell.trim());
-                
-                // Supprimer les cellules vides au début et à la fin
-                if (cells[0] === '') cells.shift();
-                if (cells[cells.length - 1] === '') cells.pop();
-                
-                // Extraire les codes en commençant par la troisième cellule
-                for (let j = 2; j < cells.length; j++) {
-                    let code = cells[j];
-                    
-                    // Supprimer les caractères de mise en forme Markdown (**, __, etc.)
-                    code = code.replace(/\*\*/g, '').replace(/__/g, '').trim();
-                    
-                    if (code && code.length >= 2 && code.length <= 4) {
-                        potentialCodes.push(code);
-                    }
-                }
-            }
-        }
-    } else {
-        // Format texte brut
-        for (let i = startIndex; i < lines.length; i++) {
-            // Diviser la ligne en mots au cas où il y aurait plusieurs codes par ligne
-            const words = lines[i].split(/\s+/);
-            
-            for (const word of words) {
-                // Nettoyer le code (supprimer les caractères non alphanumériques)
-                const cleanCode = word.replace(/[^A-Za-z0-9]/g, '');
-                
-                if (cleanCode && cleanCode.length >= 2 && cleanCode.length <= 4) {
-                    potentialCodes.push(cleanCode);
-                }
-            }
-        }
-    }
-    
-    console.log("Codes potentiels extraits:", potentialCodes);
-    
-    // Appliquer la correction automatique des codes
-    const correctedCodes = potentialCodes.map(code => {
-        // Si le code est déjà valide, le conserver
-        if (isValidCode(code)) {
-            return code;
-        }
-        
-        // Sinon, essayer de trouver le code le plus similaire
-        const correctedCode = findMostSimilarCode(code, appState.validCodes);
-        if (correctedCode) {
-            console.log(`Code corrigé: ${code} -> ${correctedCode}`);
-            return correctedCode;
-        }
-        
-        // Si aucune correction n'est possible, conserver le code original
-        return code;
-    });
-    
-    console.log("Codes corrigés:", correctedCodes);
-    
-    // Ajuster le nombre de codes pour correspondre au nombre de jours dans le mois
-    let finalCodes = [...correctedCodes];
-    
-    if (finalCodes.length < daysInMonth) {
-        console.log(`Complétion des codes manquants (${finalCodes.length} -> ${daysInMonth})`);
-        while (finalCodes.length < daysInMonth) {
-            finalCodes.push(''); // Code vide pour les jours sans code
-        }
-    } else if (finalCodes.length > daysInMonth) {
-        console.log(`Troncature des codes excédentaires (${finalCodes.length} -> ${daysInMonth})`);
-        finalCodes = finalCodes.slice(0, daysInMonth);
-    }
-    
-    console.log("Codes finaux:", finalCodes);
-    return finalCodes;
-}
-
 // Exposer les fonctions au niveau global
 window.addManualEntryButton = addManualEntryButton;
 window.showCalendarWithManualEntry = showCalendarWithManualEntry;
 window.createManualEntryArea = createManualEntryArea;
 window.switchTab = switchTab;
 window.processManualCodes = processManualCodes;
-window.parseOcrTextManually = parseOcrTextManually;
