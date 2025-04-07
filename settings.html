@@ -3,17 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#4285f4">
+    <meta name="theme-color" content="#6c5ce7">
     <title>Paramètres - MyMedICal</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/export-indicator.css">
+    <link rel="stylesheet" href="css/modern-styles.css">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="images/icons/icon-72x72.png">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
     <!-- Polices -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=VAR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'VAR', sans-serif;
+        }
+        
+        .settings-layout {
+            max-width: 1200px;
+            width: 95%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .settings-bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            width: 100%;
+        }
+        
+        @media (max-width: 768px) {
+            .settings-bottom-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -32,8 +60,9 @@
     </header>
 
     <main>
-        <div class="container settings-container">
-            <div class="card">
+        <div class="settings-layout">
+            <!-- Section Gestion des codes (prend toute la largeur) -->
+            <div class="card settings-full-width">
                 <div class="card-header">
                     <h2>Gestion des codes</h2>
                     <p>Configurez les codes utilisés dans les plannings et leurs paramètres</p>
@@ -80,7 +109,7 @@
                             
                             <div class="form-group">
                                 <label for="colorInput">Couleur</label>
-                                <input type="color" id="colorInput" value="#4285f4">
+                                <input type="color" id="colorInput" value="#6c5ce7">
                             </div>
                             
                             <div class="form-group">
@@ -101,44 +130,45 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <h2>Paramètres API</h2>
-                    <p>Configurez les paramètres de l'API Google Vision</p>
+        
+            <!-- Grille pour les sections API et Import/Export -->
+            <div class="settings-bottom-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Paramètres API</h2>
+                        <p>Configurez les paramètres de l'API Google Vision</p>
+                    </div>
+                    
+                    <form id="apiSettingsForm">
+                        <div class="form-group">
+                            <label for="apiKeyInput">Clé API Google Vision</label>
+                            <input type="password" id="apiKeyInput" placeholder="Entrez votre clé API Google Vision">
+                            <small>Obtenez une clé sur <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a></small>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="button button-primary">Enregistrer</button>
+                        </div>
+                    </form>
                 </div>
                 
-                <form id="apiSettingsForm">
-                    <div class="form-group">
-                        <label for="apiKeyInput">Clé API Google Vision</label>
-                        <input type="password" id="apiKeyInput" placeholder="Entrez votre clé API Google Vision">
-                        <small>Obtenez une clé sur <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a></small>
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Importation / Exportation</h2>
+                        <p>Sauvegardez ou restaurez vos paramètres</p>
                     </div>
                     
-                    
-                    
-                    <div class="form-actions">
-                        <button type="submit" class="button button-primary">Enregistrer</button>
-                    </div>
-                </form>
-            </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <h2>Importation / Exportation</h2>
-                    <p>Sauvegardez ou restaurez vos paramètres</p>
-                </div>
-                
-                <div class="import-export">
-                    <div class="form-group">
-                        <button id="exportSettingsBtn" class="button">Exporter les paramètres</button>
-                        <small>Télécharge un fichier JSON avec tous vos paramètres</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="importFileInput" class="button">Importer des paramètres</label>
-                        <input type="file" id="importFileInput" accept=".json" hidden>
-                        <small>Restaure les paramètres à partir d'un fichier JSON</small>
+                    <div class="import-export">
+                        <div class="form-group">
+                            <button id="exportSettingsBtn" class="button button-primary">Exporter les paramètres</button>
+                            <small>Télécharge un fichier JSON avec tous vos paramètres</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="importFileInput" class="button button-primary">Importer des paramètres</label>
+                            <input type="file" id="importFileInput" accept=".json" hidden>
+                            <small>Restaure les paramètres à partir d'un fichier JSON</small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -154,7 +184,6 @@
     </div>
 
     <script src="js/settings.js"></script>
-    <script src="js/utils.js"></script>
     <script>
         // Mettre à jour l'année dans le footer
         document.getElementById('currentYear').textContent = new Date().getFullYear();
