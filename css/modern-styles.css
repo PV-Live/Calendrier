@@ -996,3 +996,34 @@ footer {
     margin-top: var(--spacing-xs);
     color: var(--dark-gray);
 }
+
+/* Styles pour l'en-tête avec logo */
+.header-logo {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.header-icon {
+    width: 48px;
+    height: 48px;
+    margin-right: var(--spacing-md);
+    border-radius: 8px;
+}
+
+.header-title {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.header-title h1 {
+    margin: 0;
+    margin-bottom: 4px;
+    text-align: left;
+}
+
+.header-title p {
+    margin: 0;
+    text-align: left;
+}
