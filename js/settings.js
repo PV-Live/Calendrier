@@ -91,11 +91,17 @@ function setupEventListeners() {
     elements.cancelEditBtn.addEventListener('click', resetCodeEditor);
     elements.deleteCodeBtn.addEventListener('click', handleDeleteCode);
     
+    // Écouteur pour le sélecteur de couleur
+    elements.colorInput.addEventListener('input', updateColorPreview);
+    
     // Configuration API
     elements.apiSettingsForm.addEventListener('submit', handleApiFormSubmit);
     
     // Import/Export
     elements.exportSettingsBtn.addEventListener('click', exportSettings);
+    document.getElementById('importBtn').addEventListener('click', function() {
+        elements.importFileInput.click();
+    });
     elements.importFileInput.addEventListener('change', importSettings);
 }
 
@@ -467,10 +473,17 @@ function renderCodeList() {
             codeHours.className = 'code-hours';
             codeHours.textContent = `${codeData.startTime} - ${codeData.endTime}`;
             
+            // Ajouter l'indicateur d'exportation
+            const exportIndicator = document.createElement('div');
+            exportIndicator.className = codeData.exportable !== false ? 'export-indicator exportable' : 'export-indicator non-exportable';
+            exportIndicator.innerHTML = codeData.exportable !== false ? '✓' : '✗';
+            exportIndicator.title = codeData.exportable !== false ? 'Ce code sera exporté dans le calendrier' : 'Ce code ne sera pas exporté dans le calendrier';
+            
             // Assembler l'élément
             codeItem.appendChild(colorIndicator);
             codeItem.appendChild(codeText);
             codeItem.appendChild(codeHours);
+            codeItem.appendChild(exportIndicator);
             
             // Ajouter l'écouteur d'événement pour l'édition
             codeItem.addEventListener('click', () => {
@@ -505,40 +518,64 @@ function editCode(code) {
     
     // Remplir le formulaire
     elements.codeInput.value = code;
+    elements.codeInput.readOnly = true; // On ne peut pas modifier le code lui-même
     elements.descriptionInput.value = codeData.description || '';
     elements.startTimeInput.value = codeData.startTime || '09:00';
     elements.endTimeInput.value = codeData.endTime || '17:00';
     elements.colorInput.value = codeData.color || '#4285f4';
-    
-    // S'assurer que la case à cocher d'exportation est activée par défaut
-    // Si exportable est undefined ou null, on le considère comme true (actif)
     elements.exportableCheckbox.checked = codeData.exportable !== false;
     
+    // Mettre à jour l'aperçu de la couleur
+    updateColorPreview();
+    
     // Afficher le bouton de suppression
-    elements.deleteCodeBtn.style.display = 'inline-block';
+    elements.deleteCodeBtn.style.display = 'block';
+    
+    // Mettre à jour la liste des codes pour mettre en évidence le code sélectionné
+    renderCodeList();
 }
 
 /**
  * Réinitialise l'éditeur de code
  */
 function resetCodeEditor() {
-    // Réinitialiser l'état
+    // Réinitialiser le code en cours d'édition
     settingsState.currentEditingCode = null;
+    
+    // Mettre à jour le titre de l'éditeur
+    elements.editorTitle.textContent = 'Ajouter un nouveau code';
     
     // Réinitialiser le formulaire
     elements.codeForm.reset();
-    elements.codeInput.value = '';
-    elements.descriptionInput.value = '';
-    elements.startTimeInput.value = '09:00';
-    elements.endTimeInput.value = '17:00';
-    elements.colorInput.value = '#4285f4';
-    elements.exportableCheckbox.checked = false;
+    elements.codeInput.readOnly = false;
+    elements.colorInput.value = '#6c5ce7'; // Couleur par défaut
     
-    // Mettre à jour le titre
-    elements.editorTitle.textContent = 'Ajouter un nouveau code';
+    // Mettre à jour l'aperçu de la couleur
+    updateColorPreview();
     
     // Masquer le bouton de suppression
     elements.deleteCodeBtn.style.display = 'none';
+    
+    // Mettre à jour la liste des codes
+    renderCodeList();
+}
+
+/**
+ * Met à jour l'aperçu de la couleur
+ */
+function updateColorPreview() {
+    // Vérifier si l'élément d'aperçu existe déjà
+    let colorPreview = document.querySelector('.color-preview');
+    
+    // Si non, le créer
+    if (!colorPreview) {
+        colorPreview = document.createElement('div');
+        colorPreview.className = 'color-preview';
+        elements.colorInput.parentNode.appendChild(colorPreview);
+    }
+    
+    // Mettre à jour la couleur
+    colorPreview.style.backgroundColor = elements.colorInput.value;
 }
 
 /**
