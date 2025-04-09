@@ -895,9 +895,12 @@ function importSettings(event) {
             saveCodes();
             
             // Importer les paramètres API (sauf la clé)
-            if (importData.apiSettings && importData.apiSettings.strictMode) {
+            if (importData.apiSettings && importData.apiSettings.strictMode !== undefined) {
                 settingsState.apiSettings.strictMode = importData.apiSettings.strictMode;
-                elements.strictModeCheckbox.checked = importData.apiSettings.strictMode;
+                // Vérifier que l'élément existe avant de modifier sa propriété
+                if (elements.strictModeCheckbox) {
+                    elements.strictModeCheckbox.checked = importData.apiSettings.strictMode;
+                }
                 saveApiSettings();
             }
             
