@@ -578,21 +578,71 @@ function resetCodeEditor() {
 }
 
 /**
- * Met à jour l'aperçu de la couleur
+ * Met à jour l'aperçu de la couleur sélectionnée
  */
 function updateColorPreview() {
-    // Vérifier si l'élément d'aperçu existe déjà
-    let colorPreview = document.querySelector('.color-preview');
+    // Récupérer les éléments d'interface
+    const colorPreview = document.getElementById('colorPreview');
+    const colorName = document.getElementById('colorName');
+    const colorHex = document.getElementById('colorHex');
     
-    // Si non, le créer
-    if (!colorPreview) {
-        colorPreview = document.createElement('div');
-        colorPreview.className = 'color-preview';
-        elements.colorInput.parentNode.appendChild(colorPreview);
+    // Récupérer la couleur sélectionnée
+    const selectedColor = elements.colorInput.value;
+    
+    // Mettre à jour l'aperçu de la couleur
+    if (colorPreview) {
+        colorPreview.style.backgroundColor = selectedColor;
     }
     
-    // Mettre à jour la couleur
-    colorPreview.style.backgroundColor = elements.colorInput.value;
+    // Mettre à jour le texte de la couleur
+    if (colorHex) {
+        colorHex.textContent = selectedColor.toUpperCase();
+    }
+    
+    // Mettre à jour le nom de la couleur (on utilise un nom générique basé sur la teinte)
+    if (colorName) {
+        // Convertir la couleur hex en RGB
+        const r = parseInt(selectedColor.substring(1, 3), 16);
+        const g = parseInt(selectedColor.substring(3, 5), 16);
+        const b = parseInt(selectedColor.substring(5, 7), 16);
+        
+        // Déterminer un nom approximatif basé sur les valeurs RGB
+        let colorNameText = "Couleur";
+        
+        if (r > 200 && g > 200 && b > 200) {
+            colorNameText = "Blanc";
+        } else if (r < 50 && g < 50 && b < 50) {
+            colorNameText = "Noir";
+        } else if (r > g && r > b) {
+            colorNameText = r > 200 ? "Rouge vif" : "Rouge";
+        } else if (g > r && g > b) {
+            colorNameText = g > 200 ? "Vert vif" : "Vert";
+        } else if (b > r && b > g) {
+            colorNameText = b > 200 ? "Bleu vif" : "Bleu";
+        } else if (r > 150 && g > 150 && b < 100) {
+            colorNameText = "Jaune";
+        } else if (r > 150 && g < 100 && b > 150) {
+            colorNameText = "Violet";
+        } else if (r < 100 && g > 150 && b > 150) {
+            colorNameText = "Cyan";
+        } else if (r > 150 && g < 100 && b < 100) {
+            colorNameText = "Rouge";
+        } else if (r < 100 && g > 150 && b < 100) {
+            colorNameText = "Vert";
+        } else if (r < 100 && g < 100 && b > 150) {
+            colorNameText = "Bleu";
+        }
+        
+        colorName.textContent = colorNameText;
+    }
+    
+    // Rendre le colorPreview cliquable pour ouvrir le sélecteur de couleur
+    if (colorPreview) {
+        colorPreview.style.cursor = 'pointer';
+        colorPreview.onclick = function() {
+            elements.colorInput.click();
+        };
+    }
 }
 
 /**
