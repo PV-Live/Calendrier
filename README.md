@@ -64,7 +64,7 @@ Dans la section "Paramètres" :
    - Une couleur pour l'affichage dans le calendrier
    - Les heures de début et de fin
    - Si le code doit être exporté par défaut
-   - Si le code représente un quart de nuit (s'étendant sur deux jours)
+   - Si le code représente une nuit (s'étendant sur deux jours), l'heure de fin sera sur le jour d'après.
 
 ## Fonctionnalités avancées
 
