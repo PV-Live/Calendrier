@@ -49,6 +49,7 @@ const elements = {
     endTimeInput: document.getElementById('endTimeInput'),
     colorInput: document.getElementById('colorInput'),
     exportableCheckbox: document.getElementById('exportableCheckbox'),
+    overnightCheckbox: document.getElementById('overnightCheckbox'),
     saveCodeBtn: document.getElementById('saveCodeBtn'),
     cancelEditBtn: document.getElementById('cancelEditBtn'),
     deleteCodeBtn: document.getElementById('deleteCodeBtn'),
@@ -539,6 +540,7 @@ function editCode(code) {
     elements.endTimeInput.value = codeData.endTime || '17:00';
     elements.colorInput.value = codeData.color || '#4285f4';
     elements.exportableCheckbox.checked = codeData.exportable !== false;
+    elements.overnightCheckbox.checked = codeData.isOvernight;
     
     // Mettre à jour l'aperçu de la couleur
     updateColorPreview();
@@ -637,6 +639,7 @@ function handleCodeFormSubmit(codeFormSubmitEvent) {
     const endTime = elements.endTimeInput.value;
     const color = elements.colorInput.value;
     const exportable = elements.exportableCheckbox.checked;
+    const isOvernight = elements.overnightCheckbox.checked;
     
     // Valider les entrées
     if (!code) {
@@ -671,8 +674,8 @@ function handleCodeFormSubmit(codeFormSubmitEvent) {
         delete settingsState.codes[oldCode];
     }
     
-    // Déterminer si c'est un code de nuit
-    const isOvernight = isNightShift(code, startTime, endTime);
+    // Suggestion automatique pour les codes de nuit
+    const autoDetectedNight = isNightShift(code, startTime, endTime);
     
     // Mettre à jour ou créer le code
     settingsState.codes[code] = {
@@ -686,8 +689,13 @@ function handleCodeFormSubmit(codeFormSubmitEvent) {
     
     // Si c'est un code de nuit, afficher un message informatif
     if (isOvernight) {
-        console.log(`Le code "${code}" a été détecté comme un code de nuit et sera affiché sur deux jours dans le calendrier exporté.`);
+        console.log(`Le code "${code}" a été configuré comme un code de nuit et sera affiché sur deux jours dans le calendrier exporté.`);
         showToast(`Le code "${code}" a été configuré comme un code de nuit`, "info");
+    } else if (autoDetectedNight) {
+        // Si le code a été détecté automatiquement comme un code de nuit mais que l'utilisateur ne l'a pas coché,
+        // afficher un message de suggestion
+        console.log(`Le code "${code}" a été détecté comme un possible code de nuit, mais n'a pas été configuré comme tel.`);
+        showToast(`Le code "${code}" semble être un code de nuit. Vous pouvez activer l'option "Code de nuit" si nécessaire.`, "warning");
     }
     
     // Sauvegarder les codes
