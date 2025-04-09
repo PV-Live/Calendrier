@@ -176,17 +176,20 @@ async function analyzeSchedule() {
                         // Récupérer les codes modifiés
                         const modifiedCodes = codesTextarea.value.trim().split(/\s+/);
                         
+                        // Normaliser les codes en majuscules
+                        const normalizedCodes = modifiedCodes.map(code => window.normalizeCode(code));
+                        
                         // Mettre à jour le résultat
-                        result.codes = modifiedCodes;
+                        result.codes = normalizedCodes;
                         
                         // Mettre à jour l'état de l'application
                         appState.results = result;
                         
-                        // Afficher les résultats mis à jour
+                        // Mettre à jour l'affichage
                         displayResults(result);
                         
-                        // Afficher un message de confirmation
-                        showToast("Codes mis à jour avec succès", "success");
+                        // Afficher un message de succès
+                        showToast('Codes mis à jour avec succès', 'success');
                     });
                 }
                 
@@ -300,6 +303,9 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
                     // Supprimer les caractères de mise en forme Markdown (**, __, etc.)
                     code = code.replace(/\*\*/g, '').replace(/__/g, '').trim();
                     
+                    // Normaliser le code en majuscules
+                    code = window.normalizeCode(code);
+                    
                     // Vérifier si le code est valide
                     if (isValidCode(code)) {
                         codes.push(code);
@@ -388,12 +394,15 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
                         continue;
                     }
                     
+                    // Normaliser le code en majuscules
+                    const normalizedWord = window.normalizeCode(cleanWord);
+                    
                     // Vérifier si le mot est un code valide
-                    if (isValidCode(cleanWord)) {
-                        codes.push(cleanWord);
+                    if (isValidCode(normalizedWord)) {
+                        codes.push(normalizedWord);
                     } else if (cleanWord.length >= 2 && cleanWord.length <= 4) {
                         // Essayer de trouver un code similaire
-                        const similarCode = findMostSimilarCode(cleanWord, appState.validCodes);
+                        const similarCode = findMostSimilarCode(normalizedWord, appState.validCodes);
                         
                         if (similarCode) {
                             /* console.log(`Code corrigé: ${cleanWord} -> ${similarCode}`); */
@@ -430,9 +439,12 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
                             continue;
                         }
                         
+                        // Normaliser le code en majuscules
+                        const normalizedWord = window.normalizeCode(cleanWord);
+                        
                         // Vérifier si le mot est un code valide
-                        if (isValidCode(cleanWord)) {
-                            codes.push(cleanWord);
+                        if (isValidCode(normalizedWord)) {
+                            codes.push(normalizedWord);
                             
                             // Arrêter si on a assez de codes
                             if (codes.length >= daysInMonth) {
@@ -440,7 +452,7 @@ async function analyzeOcrText(ocrText, personName, month = getCurrentMonth(), ye
                             }
                         } else if (cleanWord.length >= 2 && cleanWord.length <= 4) {
                             // Essayer de trouver un code similaire
-                            const similarCode = findMostSimilarCode(cleanWord, appState.validCodes);
+                            const similarCode = findMostSimilarCode(normalizedWord, appState.validCodes);
                             
                             if (similarCode) {
                                 /* console.log(`Code corrigé: ${cleanWord} -> ${similarCode}`); */

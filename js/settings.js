@@ -1,4 +1,13 @@
 /**
+ * Normalise un code en le convertissant en majuscules
+ * @param {string} code - Code à normaliser
+ * @returns {string} - Code normalisé
+ */
+function normalizeCode(code) {
+    return code ? code.toUpperCase() : code;
+}
+
+/**
  * Calendrier Leo - Gestion des paramètres
  * Gère les codes, leurs descriptions et les heures de service
  */
@@ -428,7 +437,7 @@ function renderCodeList() {
     const searchTerm = elements.codeSearch.value.toLowerCase();
     const filteredCodes = searchTerm 
         ? sortedCodes.filter(code => 
-            code.toLowerCase().includes(searchTerm) || 
+            normalizeCode(code).toLowerCase().includes(searchTerm) || 
             settingsState.codes[code].description.toLowerCase().includes(searchTerm)
           )
         : sortedCodes;
@@ -438,12 +447,14 @@ function renderCodeList() {
         elements.codeList.innerHTML = '<div class="empty-state">Aucun code trouvé</div>';
     } else {
         filteredCodes.forEach(code => {
+            // Normaliser le code pour l'affichage
+            const normalizedCode = normalizeCode(code);
             const codeData = settingsState.codes[code];
             const codeItem = document.createElement('div');
             codeItem.className = 'code-item';
             
             // Ajouter la classe 'active' si c'est le code en cours d'édition
-            if (code === settingsState.currentEditingCode) {
+            if (normalizedCode === normalizeCode(settingsState.currentEditingCode)) {
                 codeItem.classList.add('active');
             }
             
@@ -459,7 +470,7 @@ function renderCodeList() {
             codeText.className = 'code-text';
             
             const codeLabel = document.createElement('strong');
-            codeLabel.textContent = code;
+            codeLabel.textContent = normalizedCode;
             
             const codeDescription = document.createElement('span');
             codeDescription.textContent = codeData.description;
@@ -505,19 +516,23 @@ function filterCodeList() {
 
 /**
  * Édite un code existant
+ * @param {string} code - Code à éditer
  */
 function editCode(code) {
-    const codeData = settingsState.codes[code];
+    // Normaliser le code en majuscules
+    const normalizedCode = normalizeCode(code);
+    
+    const codeData = settingsState.codes[normalizedCode];
     if (!codeData) return;
     
     // Mettre à jour l'état
-    settingsState.currentEditingCode = code;
+    settingsState.currentEditingCode = normalizedCode;
     
     // Mettre à jour le titre
-    elements.editorTitle.textContent = `Modifier le code "${code}"`;
+    elements.editorTitle.textContent = `Modifier le code "${normalizedCode}"`;
     
     // Remplir le formulaire
-    elements.codeInput.value = code;
+    elements.codeInput.value = normalizedCode;
     elements.codeInput.readOnly = true; // On ne peut pas modifier le code lui-même
     elements.descriptionInput.value = codeData.description || '';
     elements.startTimeInput.value = codeData.startTime || '09:00';

@@ -308,6 +308,9 @@ function processManualCodes() {
         // Traiter les codes
         const codesText = input.value.trim();
         codes = codesText.split(/[\s,;]+/).filter(code => code.trim() !== '');
+        
+        // Normaliser les codes en majuscules
+        codes = codes.map(code => normalizeCode(code));
     }
     
     // Compléter ou tronquer les codes si nécessaire

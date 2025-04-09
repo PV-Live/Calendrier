@@ -253,19 +253,34 @@ function updateCodeDropdowns() {
 function getCodeDescription(code) {
     if (!code) return '';
     
-    const codeData = appState.codesData[code];
+    // Normaliser le code en majuscules
+    const normalizedCode = normalizeCode(code);
+    
+    const codeData = appState.codesData[normalizedCode];
     return codeData ? codeData.description : '';
 }
 
 /**
- * Retourne la couleur d'un code
+ * Normalise un code en le convertissant en majuscules
+ * @param {string} code - Code à normaliser
+ * @returns {string} - Code normalisé
+ */
+function normalizeCode(code) {
+    return code ? code.toUpperCase() : code;
+}
+
+/**
+ * Retourne la couleur associée à un code
  * @param {string} code - Code
- * @returns {string} - Couleur du code
+ * @returns {string} - Couleur au format hexadécimal
  */
 function getCodeColor(code) {
     if (!code) return '#CCCCCC';
     
-    const codeData = appState.codesData[code];
+    // Normaliser le code en majuscules
+    const normalizedCode = normalizeCode(code);
+    
+    const codeData = appState.codesData[normalizedCode];
     return codeData && codeData.color ? codeData.color : '#CCCCCC';
 }
 
@@ -277,7 +292,10 @@ function getCodeColor(code) {
 function getCodeHours(code) {
     if (!code) return 0;
     
-    const codeData = appState.codesData[code];
+    // Normaliser le code en majuscules
+    const normalizedCode = normalizeCode(code);
+    
+    const codeData = appState.codesData[normalizedCode];
     return codeData && typeof codeData.hours === 'number' ? codeData.hours : 0;
 }
 
@@ -413,15 +431,17 @@ function findMostSimilarCode(code, validCodes, threshold = 0.5) {
 
 /**
  * Détermine si un code doit être exporté dans le calendrier ICS
- * Utilise la propriété exportable de chaque code définie dans les paramètres
- * @param {string} code - Code à vérifier
- * @returns {boolean} - True si le code doit être exporté
+ * @param {string} code - Code
+ * @returns {boolean} - true si le code doit être exporté, false sinon
  */
 function shouldExportCode(code) {
     if (!code) return false;
     
+    // Normaliser le code en majuscules
+    const normalizedCode = normalizeCode(code);
+    
     // Récupérer les données du code
-    const codeData = appState.codesData[code];
+    const codeData = appState.codesData[normalizedCode];
     
     // Si le code n'existe pas dans les données, ne pas l'exporter
     if (!codeData) return false;
@@ -541,3 +561,4 @@ window.findMostSimilarCode = findMostSimilarCode;
 window.loadApiSettings = loadApiSettings;
 window.saveApiSettings = saveApiSettings;
 window.shouldExportCode = shouldExportCode;
+window.normalizeCode = normalizeCode;
