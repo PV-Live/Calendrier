@@ -888,7 +888,7 @@ footer {
 .btn-small {
     display: inline-block;
     padding: 6px 12px;
-    background-color: #4285f4;
+    background-color: #9187e7;
     color: white;
     border-radius: 4px;
     text-decoration: none;
@@ -897,7 +897,7 @@ footer {
 }
 
 .btn-small:hover {
-    background-color: #3367d6;
+    background-color: #7b73c4;
     text-decoration: none;
 }
 
